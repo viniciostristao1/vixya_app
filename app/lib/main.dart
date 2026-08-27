@@ -6,6 +6,7 @@ import 'screens/new_video_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Config.load();
+  await Config.refreshFromRemote(); // pega o endereço atual do backend (ponteiro fixo)
   runApp(const VixyaApp());
 }
 
