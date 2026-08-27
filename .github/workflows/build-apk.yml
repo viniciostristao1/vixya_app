@@ -52,12 +52,21 @@ jobs:
           find ~/.pub-cache -type f -name build.gradle.kts -path '*/android/*' -exec sed -i -E 's/(compileSdk)[[:space:]]*=[[:space:]]*(flutter\.compileSdkVersion|[0-9]+)/\1 = 36/g' {} +
           echo "file_picker apos patch:"; grep -rn 'compileSdk' ~/.pub-cache/hosted/pub.dev/file_picker-*/android/build.gradle || true
 
-      - name: Build APK (release, split por ABI)
+      - name: Build APK (release, universal)
         working-directory: app
-        run: flutter build apk --release --split-per-abi
+        run: flutter build apk --release
 
-      - name: Publicar APK como artifact
+      - name: Publicar APK como Release (link direto p/ o celular)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete latest -y --cleanup-tag 2>/dev/null || true
+          gh release create latest app/build/app/outputs/flutter-apk/app-release.apk \
+            --title "Vixya — APK mais recente" \
+            --notes "Baixe o app-release.apk e instale no Android (permita 'instalar de fontes desconhecidas'). Depois abra Configurações no app e informe a URL do backend + o token."
+
+      - name: APK tambem como artifact
         uses: actions/upload-artifact@v4
         with:
           name: vixya-apk
-          path: app/build/app/outputs/flutter-apk/*.apk
+          path: app/build/app/outputs/flutter-apk/app-release.apk
