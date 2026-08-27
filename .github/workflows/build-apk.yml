@@ -38,6 +38,12 @@ jobs:
           flutter --version
           flutter create --platforms=android --org com.vinyapps --project-name vixya_app .
           git checkout -- lib pubspec.yaml || true
+          # eleva compileSdk/minSdk do app; o Flutter moderno propaga aos plugins
+          if [ -f android/app/build.gradle.kts ]; then
+            sed -i -E 's/compileSdk *= *flutter\.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
+            sed -i -E 's/minSdk *= *flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
+          fi
+          grep -nE "compileSdk|minSdk" android/app/build.gradle.kts || true
 
       - name: Dependências
         working-directory: app
