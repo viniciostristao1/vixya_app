@@ -38,13 +38,15 @@ jobs:
         run: |
           flutter create --platforms=android --org com.vinyapps --project-name vixya_app .
           git checkout -- lib pubspec.yaml || true
-          # plugins (file_picker/video_player) exigem minSdk >= 23
+          # plugins exigem compileSdk 36 (flutter_plugin_android_lifecycle) e minSdk >= 23
           if [ -f android/app/build.gradle.kts ]; then
+            sed -i -E 's/compileSdk *= *flutter\.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
             sed -i -E 's/minSdk *= *flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
           elif [ -f android/app/build.gradle ]; then
+            sed -i -E 's/(compileSdk(Version)?)[ =]+flutter\.compileSdkVersion/\1 36/' android/app/build.gradle
             sed -i -E 's/(minSdk(Version)?)[ =]+flutter\.minSdkVersion/\1 23/' android/app/build.gradle
           fi
-          echo "== minSdk ==" ; grep -rn "minSdk" android/app/build.gradle* || true
+          echo "== sdk ==" ; grep -rnE "compileSdk|minSdk" android/app/build.gradle* || true
 
       - name: Dependências
         working-directory: app
