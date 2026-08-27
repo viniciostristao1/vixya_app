@@ -38,13 +38,9 @@ jobs:
           flutter --version
           flutter create --platforms=android --org com.vinyapps --project-name vixya_app .
           git checkout -- lib pubspec.yaml || true
-          # app em compileSdk 36 / minSdk 23
+          # app em compileSdk 36 / minSdk 23 (belt-and-suspenders)
           sed -i -E 's/compileSdk *= *flutter\.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
           sed -i -E 's/minSdk *= *flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
-          # forca compileSdk 36 nos MODULOS de plugin, registrando cedo (prepend)
-          printf 'subprojects {\n    plugins.withId("com.android.library") {\n        (extensions.getByName("android") as com.android.build.gradle.BaseExtension).compileSdkVersion(36)\n    }\n}\n\n' > /tmp/pre.kts
-          cat /tmp/pre.kts android/build.gradle.kts > /tmp/merged.kts && mv /tmp/merged.kts android/build.gradle.kts
-          echo "===== android/build.gradle.kts (topo) ====="; head -12 android/build.gradle.kts
 
       - name: Dependências
         working-directory: app
