@@ -47,11 +47,10 @@ jobs:
         run: |
           flutter pub get
           # plugins compilam com flutter.compileSdkVersion (35); alguns exigem 36 -> forca 36
-          find ~/.pub-cache -type f \( -name build.gradle -o -name build.gradle.kts \) -path '*/android/*' -exec sed -i 's/flutter\.compileSdkVersion/36/g' {} +
-          echo "=== DIAG file_picker gradle ==="
-          find ~/.pub-cache -path '*file_picker*/android/build.gradle*' | while read f; do echo "== $f =="; grep -nE 'compileSdk|namespace' "$f" || true; done
-          echo "=== DIAG lifecycle gradle ==="
-          find ~/.pub-cache -path '*flutter_plugin_android_lifecycle*/android/build.gradle*' | while read f; do echo "== $f =="; grep -nE 'compileSdk|namespace' "$f" || true; done
+          # varios plugins FIXAM compileSdk baixo (ex.: file_picker=34); forca 36 em todos
+          find ~/.pub-cache -type f -name build.gradle -path '*/android/*' -exec sed -i -E 's/(compileSdk(Version)?)[[:space:]]+(flutter\.compileSdkVersion|[0-9]+)/\1 36/g' {} +
+          find ~/.pub-cache -type f -name build.gradle.kts -path '*/android/*' -exec sed -i -E 's/(compileSdk)[[:space:]]*=[[:space:]]*(flutter\.compileSdkVersion|[0-9]+)/\1 = 36/g' {} +
+          echo "file_picker apos patch:"; grep -rn 'compileSdk' ~/.pub-cache/hosted/pub.dev/file_picker-*/android/build.gradle || true
 
       - name: Build APK (release, split por ABI)
         working-directory: app
