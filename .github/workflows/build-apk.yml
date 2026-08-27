@@ -46,6 +46,8 @@ jobs:
             sed -i -E 's/(compileSdk(Version)?)[ =]+flutter\.compileSdkVersion/\1 36/' android/app/build.gradle
             sed -i -E 's/(minSdk(Version)?)[ =]+flutter\.minSdkVersion/\1 23/' android/app/build.gradle
           fi
+          # forca compileSdk 36 TAMBEM nos modulos de plugin (subprojects)
+          [ -f android/build.gradle.kts ] && printf '\nsubprojects {\n  afterEvaluate {\n    val e = extensions.findByName("android")\n    if (e is com.android.build.gradle.BaseExtension) e.compileSdkVersion(36)\n  }\n}\n' >> android/build.gradle.kts
           echo "== sdk ==" ; grep -rnE "compileSdk|minSdk" android/app/build.gradle* || true
 
       - name: Dependências
