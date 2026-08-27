@@ -44,7 +44,11 @@ jobs:
 
       - name: Dependências
         working-directory: app
-        run: flutter pub get
+        run: |
+          flutter pub get
+          # plugins compilam com flutter.compileSdkVersion (35); alguns exigem 36 -> forca 36
+          find ~/.pub-cache -type f \( -name build.gradle -o -name build.gradle.kts \) -path '*/android/*' -exec sed -i 's/flutter\.compileSdkVersion/36/g' {} +
+          echo "compileSdk dos plugins forcado para 36"
 
       - name: Build APK (release, split por ABI)
         working-directory: app

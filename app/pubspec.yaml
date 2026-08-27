@@ -16,10 +16,6 @@ dependencies:
   path_provider: ^2.1.0
   shared_preferences: ^2.3.0
 
-# força uma versão do lifecycle que não exige compileSdk 36 (evita conflito de AAR no build)
-dependency_overrides:
-  flutter_plugin_android_lifecycle: 2.0.17
-
 dev_dependencies:
   flutter_lints: ^4.0.0
 
