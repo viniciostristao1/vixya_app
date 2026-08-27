@@ -48,7 +48,10 @@ jobs:
           flutter pub get
           # plugins compilam com flutter.compileSdkVersion (35); alguns exigem 36 -> forca 36
           find ~/.pub-cache -type f \( -name build.gradle -o -name build.gradle.kts \) -path '*/android/*' -exec sed -i 's/flutter\.compileSdkVersion/36/g' {} +
-          echo "compileSdk dos plugins forcado para 36"
+          echo "=== DIAG file_picker gradle ==="
+          find ~/.pub-cache -path '*file_picker*/android/build.gradle*' | while read f; do echo "== $f =="; grep -nE 'compileSdk|namespace' "$f" || true; done
+          echo "=== DIAG lifecycle gradle ==="
+          find ~/.pub-cache -path '*flutter_plugin_android_lifecycle*/android/build.gradle*' | while read f; do echo "== $f =="; grep -nE 'compileSdk|namespace' "$f" || true; done
 
       - name: Build APK (release, split por ABI)
         working-directory: app
