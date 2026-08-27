@@ -30,25 +30,14 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: 3.44.7
 
       # gera android/ (e outros) a partir do pubspec; depois restaura nosso codigo
       - name: Gerar scaffold de plataforma
         working-directory: app
         run: |
+          flutter --version
           flutter create --platforms=android --org com.vinyapps --project-name vixya_app .
           git checkout -- lib pubspec.yaml || true
-          # plugins exigem compileSdk 36 (flutter_plugin_android_lifecycle) e minSdk >= 23
-          if [ -f android/app/build.gradle.kts ]; then
-            sed -i -E 's/compileSdk *= *flutter\.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
-            sed -i -E 's/minSdk *= *flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
-          elif [ -f android/app/build.gradle ]; then
-            sed -i -E 's/(compileSdk(Version)?)[ =]+flutter\.compileSdkVersion/\1 36/' android/app/build.gradle
-            sed -i -E 's/(minSdk(Version)?)[ =]+flutter\.minSdkVersion/\1 23/' android/app/build.gradle
-          fi
-          # forca compileSdk 36 TAMBEM nos modulos de plugin (subprojects)
-          [ -f android/build.gradle.kts ] && printf '\nsubprojects {\n  plugins.withId("com.android.library") {\n    extensions.configure(com.android.build.gradle.LibraryExtension::class.java) {\n      compileSdk = 36\n    }\n  }\n}\n' >> android/build.gradle.kts
-          echo "== sdk ==" ; grep -rnE "compileSdk|minSdk" android/app/build.gradle* || true
 
       - name: Dependências
         working-directory: app
