@@ -25,7 +25,9 @@ class Config {
     _userSetUrl = saved != null && saved.isNotEmpty;
     // prioridade: URL manual > último endereço que funcionou > padrão embutido
     backendUrl = _userSetUrl ? saved! : (p.getString(_kResolvedUrl) ?? _defaultUrl);
-    token = p.getString(_kToken) ?? _defaultToken;
+    // token: se o salvo estiver vazio/ausente, usa o embutido (evita 401 por token vazio)
+    final savedTok = p.getString(_kToken);
+    token = (savedTok != null && savedTok.isNotEmpty) ? savedTok : _defaultToken;
   }
 
   /// Busca a URL atual do backend no ponteiro fixo (com 3 tentativas). Best-effort.
