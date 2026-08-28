@@ -52,9 +52,17 @@ jobs:
           find ~/.pub-cache -type f -name build.gradle.kts -path '*/android/*' -exec sed -i -E 's/(compileSdk)[[:space:]]*=[[:space:]]*(flutter\.compileSdkVersion|[0-9]+)/\1 = 36/g' {} +
           echo "file_picker apos patch:"; grep -rn 'compileSdk' ~/.pub-cache/hosted/pub.dev/file_picker-*/android/build.gradle || true
 
-      - name: Build APK (release, universal)
+      - name: Build APK (release, universal, assinado com chave fixa)
         working-directory: app
-        run: flutter build apk --release
+        env:
+          KS_PASS: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > upload-keystore.jks
+          flutter build apk --release \
+            -Pandroid.injected.signing.store.file=$(pwd)/upload-keystore.jks \
+            -Pandroid.injected.signing.store.password="$KS_PASS" \
+            -Pandroid.injected.signing.key.alias=upload \
+            -Pandroid.injected.signing.key.password="$KS_PASS"
 
       - name: Publicar APK como Release (link direto p/ o celular)
         env:
