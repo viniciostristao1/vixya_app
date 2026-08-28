@@ -41,6 +41,7 @@ jobs:
           # app em compileSdk 36 / minSdk 23 (belt-and-suspenders)
           sed -i -E 's/compileSdk *= *flutter\.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
           sed -i -E 's/minSdk *= *flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
 
       - name: Dependências
         working-directory: app

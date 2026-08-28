@@ -155,7 +155,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           ),
           const SizedBox(height: 12),
-          Text('v0.1.2 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+          Text('v0.1.3 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
         ],
       ),
     );

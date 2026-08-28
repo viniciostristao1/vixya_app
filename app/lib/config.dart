@@ -9,7 +9,7 @@ class Config {
   static const _gistRawUrl =
       'https://gist.githubusercontent.com/viniciostristao1/6795f2486e00131239017af51e5db38c/raw/vixya_backend.txt';
 
-  static const _defaultUrl = 'https://2-24-13-102.sslip.io';
+  static const _defaultUrl = 'http://2-24-13-102.sslip.io';
   static const _defaultToken = 'Xl3nDJw0a5HBq_D3aBgB18Tn00RsGPfD';
 
   static String backendUrl = _defaultUrl;
