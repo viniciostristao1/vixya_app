@@ -41,7 +41,12 @@ jobs:
           # app em compileSdk 36 / minSdk 23 (belt-and-suspenders)
           sed -i -E 's/compileSdk *= *flutter\.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts
           sed -i -E 's/minSdk *= *flutter\.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts
+          # CRUCIAL: flutter create poe a permissao INTERNET so nos manifestos de debug/profile,
+          # NAO no main -> APK release nasce SEM acesso a rede (erro "Operation not permitted errno=1").
+          grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' android/app/src/main/AndroidManifest.xml
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
+          echo "== manifesto final =="; grep -E "uses-permission|<application" android/app/src/main/AndroidManifest.xml
 
       - name: Dependências
         working-directory: app

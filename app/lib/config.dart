@@ -9,7 +9,8 @@ class Config {
   static const _gistRawUrl =
       'https://gist.githubusercontent.com/viniciostristao1/6795f2486e00131239017af51e5db38c/raw/vixya_backend.txt';
 
-  static const _defaultUrl = 'http://2-24-13-102.sslip.io';
+  // Caddy na VPS com cert Let's Encrypt valido; IP fixo => endereco PERMANENTE.
+  static const _defaultUrl = 'https://2-24-13-102.sslip.io';
   static const _defaultToken = 'Xl3nDJw0a5HBq_D3aBgB18Tn00RsGPfD';
 
   static String backendUrl = _defaultUrl;
@@ -27,10 +28,6 @@ class Config {
 
   static Future<void> refreshFromRemote({bool force = false}) async {
     if (_userSetUrl && !force) return;
-    final endpoints = [
-      _gistRawUrl,
-      'https://1.1.1.1/dns-query'.isEmpty ? '' : _gistRawUrl,
-    ];
     for (var i = 0; i < 3; i++) {
       try {
         final r = await http.get(Uri.parse(_gistRawUrl)).timeout(const Duration(seconds: 8));
