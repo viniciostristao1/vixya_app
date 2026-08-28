@@ -20,9 +20,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await Config.save(_url.text, _token.text);
     try {
       final h = await Api.health();
-      setState(() => _msg = 'Conectado ✓  (disco livre ${h['disk_free_gb']} GB)');
+      setState(() => _msg = 'Conectado \u2713  (disco livre ${h['disk_free_gb']} GB)');
     } catch (e) {
-      setState(() => _msg = 'Não conectou: $e');
+      setState(() => _msg = 'N\u00e3o conectou: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _restore() async {
+    setState(() { _busy = true; _msg = null; });
+    await Config.clearSaved();
+    await Config.refreshFromRemote(force: true);
+    _url.text = Config.backendUrl;
+    _token.text = Config.token;
+    try {
+      final h = await Api.health();
+      setState(() => _msg = 'Restaurado \u2713  (disco livre ${h['disk_free_gb']} GB)');
+    } catch (e) {
+      setState(() => _msg = 'Restaurado, mas n\u00e3o conectou: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -31,11 +47,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurações')),
+      appBar: AppBar(title: const Text('Configura\u00e7\u00f5es')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Endereço do backend (VPS)'),
+          const Text('Endere\u00e7o do backend (VPS)'),
           const SizedBox(height: 6),
           TextField(controller: _url, keyboardType: TextInputType.url,
               decoration: const InputDecoration(hintText: 'https://seu-servidor:8090', border: OutlineInputBorder())),
@@ -53,7 +69,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: const Text('Salvar'),
           ),
           const SizedBox(height: 8),
-          OutlinedButton(onPressed: _busy ? null : _test, child: const Text('Testar conexão')),
+          OutlinedButton(onPressed: _busy ? null : _test, child: const Text('Testar conex\u00e3o')),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _restore,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Restaurar endere\u00e7o autom\u00e1tico'),
+          ),
           if (_msg != null) Padding(padding: const EdgeInsets.only(top: 16), child: Text(_msg!)),
         ],
       ),

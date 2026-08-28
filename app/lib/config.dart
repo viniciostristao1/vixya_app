@@ -1,14 +1,11 @@
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Config do backend. O app já vem pré-configurado e, ao abrir, busca o endereço ATUAL do
-/// backend de um ponteiro fixo (gist) que a VPS mantém — assim funciona mesmo se o túnel mudar.
 class Config {
-  static const _kUrl = 'backend_url';        // URL manual definida pelo usuário
+  static const _kUrl = 'backend_url';
   static const _kToken = 'api_token';
-  static const _kResolvedUrl = 'resolved_url'; // último endereço que funcionou (cache)
+  static const _kResolvedUrl = 'resolved_url';
 
-  // ponteiro fixo: a VPS atualiza a URL atual do backend aqui
   static const _gistRawUrl =
       'https://gist.githubusercontent.com/viniciostristao1/6795f2486e00131239017af51e5db38c/raw/vixya_backend.txt';
 
@@ -23,17 +20,17 @@ class Config {
     final p = await SharedPreferences.getInstance();
     final saved = p.getString(_kUrl);
     _userSetUrl = saved != null && saved.isNotEmpty;
-    // prioridade: URL manual > último endereço que funcionou > padrão embutido
     backendUrl = _userSetUrl ? saved! : (p.getString(_kResolvedUrl) ?? _defaultUrl);
-    // token: se o salvo estiver vazio/ausente, usa o embutido (evita 401 por token vazio)
     final savedTok = p.getString(_kToken);
     token = (savedTok != null && savedTok.isNotEmpty) ? savedTok : _defaultToken;
   }
 
-  /// Busca a URL atual do backend no ponteiro fixo (com 3 tentativas). Best-effort.
-  /// Não sobrescreve se o usuário definiu uma URL manual em Configurações.
-  static Future<void> refreshFromRemote() async {
-    if (_userSetUrl) return;
+  static Future<void> refreshFromRemote({bool force = false}) async {
+    if (_userSetUrl && !force) return;
+    final endpoints = [
+      _gistRawUrl,
+      'https://1.1.1.1/dns-query'.isEmpty ? '' : _gistRawUrl,
+    ];
     for (var i = 0; i < 3; i++) {
       try {
         final r = await http.get(Uri.parse(_gistRawUrl)).timeout(const Duration(seconds: 8));
@@ -44,7 +41,7 @@ class Config {
           await p.setString(_kResolvedUrl, backendUrl);
           return;
         }
-      } catch (_) {/* tenta de novo */}
+      } catch (_) {}
       await Future.delayed(const Duration(seconds: 2));
     }
   }
@@ -56,6 +53,16 @@ class Config {
     _userSetUrl = backendUrl.isNotEmpty;
     await p.setString(_kUrl, backendUrl);
     await p.setString(_kToken, token);
+  }
+
+  static Future<void> clearSaved() async {
+    final p = await SharedPreferences.getInstance();
+    await p.remove(_kUrl);
+    await p.remove(_kToken);
+    await p.remove(_kResolvedUrl);
+    _userSetUrl = false;
+    backendUrl = _defaultUrl;
+    token = _defaultToken;
   }
 
   static bool get isSet => backendUrl.isNotEmpty;
