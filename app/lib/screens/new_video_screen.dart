@@ -154,6 +154,8 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             label: Text(_sending ? 'Enviando...' : 'GERAR VÍDEO'),
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           ),
+          const SizedBox(height: 12),
+          Text('v0.1.1 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
         ],
       ),
     );
