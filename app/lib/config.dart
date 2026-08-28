@@ -4,8 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// Config do backend. O app já vem pré-configurado e, ao abrir, busca o endereço ATUAL do
 /// backend de um ponteiro fixo (gist) que a VPS mantém — assim funciona mesmo se o túnel mudar.
 class Config {
-  static const _kUrl = 'backend_url';
+  static const _kUrl = 'backend_url';        // URL manual definida pelo usuário
   static const _kToken = 'api_token';
+  static const _kResolvedUrl = 'resolved_url'; // último endereço que funcionou (cache)
 
   // ponteiro fixo: a VPS atualiza a URL atual do backend aqui
   static const _gistRawUrl =
@@ -22,21 +23,28 @@ class Config {
     final p = await SharedPreferences.getInstance();
     final saved = p.getString(_kUrl);
     _userSetUrl = saved != null && saved.isNotEmpty;
-    backendUrl = _userSetUrl ? saved! : _defaultUrl;
+    // prioridade: URL manual > último endereço que funcionou > padrão embutido
+    backendUrl = _userSetUrl ? saved! : (p.getString(_kResolvedUrl) ?? _defaultUrl);
     token = p.getString(_kToken) ?? _defaultToken;
   }
 
-  /// Busca a URL atual do backend no ponteiro fixo (best-effort).
-  /// Não sobrescreve se o usuário tiver definido uma URL manual em Configurações.
+  /// Busca a URL atual do backend no ponteiro fixo (com 3 tentativas). Best-effort.
+  /// Não sobrescreve se o usuário definiu uma URL manual em Configurações.
   static Future<void> refreshFromRemote() async {
     if (_userSetUrl) return;
-    try {
-      final r = await http.get(Uri.parse(_gistRawUrl)).timeout(const Duration(seconds: 6));
-      final u = r.body.trim();
-      if (r.statusCode == 200 && u.startsWith('http')) {
-        backendUrl = u.replaceAll(RegExp(r'/+$'), '');
-      }
-    } catch (_) {/* mantém o padrão embutido */}
+    for (var i = 0; i < 3; i++) {
+      try {
+        final r = await http.get(Uri.parse(_gistRawUrl)).timeout(const Duration(seconds: 8));
+        final u = r.body.trim();
+        if (r.statusCode == 200 && u.startsWith('http')) {
+          backendUrl = u.replaceAll(RegExp(r'/+$'), '');
+          final p = await SharedPreferences.getInstance();
+          await p.setString(_kResolvedUrl, backendUrl);
+          return;
+        }
+      } catch (_) {/* tenta de novo */}
+      await Future.delayed(const Duration(seconds: 2));
+    }
   }
 
   static Future<void> save(String url, String tok) async {

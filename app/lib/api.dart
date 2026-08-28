@@ -22,16 +22,19 @@ class Api {
 
   /// Lista de modelos de IA (para o usuário escolher). Vazia se indisponível.
   static Future<List<String>> models() async {
-    try {
-      final r = await http
-          .get(_u('/models'), headers: _headers)
-          .timeout(const Duration(seconds: 20));
-      if (r.statusCode != 200) return [];
-      final d = jsonDecode(r.body) as Map<String, dynamic>;
-      return (d['models'] as List).map((e) => e.toString()).toList();
-    } catch (_) {
-      return [];
+    for (var i = 0; i < 2; i++) {
+      try {
+        final r = await http
+            .get(_u('/models'), headers: _headers)
+            .timeout(const Duration(seconds: 20));
+        if (r.statusCode == 200) {
+          final d = jsonDecode(r.body) as Map<String, dynamic>;
+          return (d['models'] as List).map((e) => e.toString()).toList();
+        }
+      } catch (_) {/* re-descobre o endereço e tenta de novo */}
+      await Config.refreshFromRemote();
     }
+    return [];
   }
 
   /// Cria o job (upload de vídeo + prints). Retorna o id do job.
@@ -41,16 +44,25 @@ class Api {
     String style = 'dinamico',
     String? model,
   }) async {
-    final req = http.MultipartRequest('POST', _u('/jobs'))
-      ..headers.addAll(_headers)
-      ..fields['objective'] = objective
-      ..fields['style'] = style;
-    if (model != null && model.isNotEmpty) req.fields['model'] = model;
-    for (final f in files) {
-      req.files.add(await http.MultipartFile.fromPath('files', f.path));
+    Future<http.Response> attempt() async {
+      final req = http.MultipartRequest('POST', _u('/jobs'))
+        ..headers.addAll(_headers)
+        ..fields['objective'] = objective
+        ..fields['style'] = style;
+      if (model != null && model.isNotEmpty) req.fields['model'] = model;
+      for (final f in files) {
+        req.files.add(await http.MultipartFile.fromPath('files', f.path));
+      }
+      return http.Response.fromStream(await req.send().timeout(const Duration(minutes: 5)));
     }
-    final resp = await http.Response.fromStream(
-        await req.send().timeout(const Duration(minutes: 5)));
+
+    http.Response resp;
+    try {
+      resp = await attempt();
+    } catch (_) {
+      await Config.refreshFromRemote(); // re-descobre o endereço e tenta 1x
+      resp = await attempt();
+    }
     if (resp.statusCode >= 300) {
       throw Exception('Falha ao enviar (${resp.statusCode}): ${resp.body}');
     }
