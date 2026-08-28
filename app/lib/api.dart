@@ -10,15 +10,23 @@ class Api {
   static http.Client? _c;
   static http.Client get _client => _c ??= _makeDohClient();
 
+  static const _hardcodedIp = {
+    '2-24-13-102.sslip.io': '2.24.13.102',
+  };
+
   static http.Client _makeDohClient() {
     final io = HttpClient()
       ..connectionTimeout = const Duration(seconds: 15)
       ..connectionFactory = (Uri uri, String? proxyHost, int? proxyPort) async {
         var target = uri.host;
-        try {
-          final ip = await _resolveDoH(uri.host);
-          if (ip != null && ip.isNotEmpty) target = ip;
-        } catch (_) {}
+        if (_hardcodedIp.containsKey(uri.host)) {
+          target = _hardcodedIp[uri.host]!;
+        } else {
+          try {
+            final ip = await _resolveDoH(uri.host);
+            if (ip != null && ip.isNotEmpty) target = ip;
+          } catch (_) {}
+        }
         return Socket.startConnect(target, uri.port);
       };
     return IOClient(io);
