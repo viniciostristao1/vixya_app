@@ -84,7 +84,19 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Vixya'),
-        actions: [IconButton(onPressed: _openSettings, icon: const Icon(Icons.settings))],
+        actions: [
+          IconButton(
+            tooltip: 'Recarregar IAs',
+            icon: const Icon(Icons.refresh),
+            onPressed: () async {
+              await _loadModels();
+              if (!mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(_models.isEmpty ? 'Ainda sem conexão' : '${_models.length} IAs disponíveis')));
+            },
+          ),
+          IconButton(onPressed: _openSettings, icon: const Icon(Icons.settings)),
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
