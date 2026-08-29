@@ -18,37 +18,54 @@ class ProgressScreen extends StatefulWidget {
 
 class _ProgressScreenState extends State<ProgressScreen> {
   Timer? _timer;
+  Timer? _anim;
   String _state = 'QUEUED';
   int _version = 1;
   int _progress = 0;
+  double _display = 0.03;
   String? _error;
   bool _busy = false;
   VideoPlayerController? _player;
   int _loadedVersion = -1;
 
-  ({String label, double progress}) get _unified {
-    if (_state == 'QUEUED') return (label: tr('queued'), progress: 0.05);
-    if (_state == 'ANALYZING') return (label: tr('buildingScript'), progress: 0.15);
-    if (_state == 'PLANNING') return (label: tr('buildingScript'), progress: 0.30);
+  ({String label, double progress}) get _target {
+    if (_state == 'QUEUED') return (label: tr('queued'), progress: 0.08);
+    if (_state == 'ANALYZING') return (label: tr('buildingScript'), progress: 0.20);
+    if (_state == 'PLANNING') return (label: tr('buildingScript'), progress: 0.35);
     if (_state == 'RENDERING') {
       final p = _progress.clamp(0, 100) / 100.0;
-      final prog = 0.30 + p * 0.60;
+      final prog = 0.35 + p * 0.55;
       final label = p < 0.85 ? tr('buildingVideo') : tr('finalTouches');
       return (label: label, progress: prog.clamp(0.0, 0.95));
     }
-    if (_state == 'PREVIEW') return (label: tr('finalTouches'), progress: 0.95);
-    return (label: _state, progress: 0.10);
+    if (_state == 'PREVIEW') return (label: tr('finalTouches'), progress: 0.96);
+    return (label: _state, progress: _display);
   }
 
   @override
   void initState() {
     super.initState();
     _startPolling();
+    _anim = Timer.periodic(const Duration(milliseconds: 120), (_) {
+      if (!mounted) return;
+      final t = _target.progress;
+      if (_display < t) {
+        setState(() => _display = (_display + 0.004).clamp(0.0, t));
+      } else if (_display > t + 0.02) {
+        setState(() => _display = t);
+      }
+      if (_state == 'QUEUED' && _display < 0.07) {
+        setState(() => _display = (_display + 0.001).clamp(0.0, 0.07));
+      } else if ((_state == 'ANALYZING' || _state == 'PLANNING') && _display < _target.progress - 0.01) {
+        setState(() => _display = (_display + 0.002).clamp(0.0, _target.progress - 0.01));
+      }
+    });
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _anim?.cancel();
     _player?.dispose();
     super.dispose();
   }
@@ -71,10 +88,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
       });
       if (_state == 'WAITING_APPROVAL' && _loadedVersion != _version) {
         _loadedVersion = _version;
+        setState(() => _display = 1.0);
         await _loadPreview();
       }
       if (_state == 'COMPLETED' || _state == 'FAILED' || _state == 'CANCELLED') {
         _timer?.cancel();
+        _anim?.cancel();
+        if (_state == 'COMPLETED') setState(() => _display = 1.0);
       }
     } catch (_) {/* transitório: continua tentando */}
   }
@@ -99,7 +119,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     try {
       await Api.requestVersion(widget.jobId);
       _loadedVersion = -1;
-      setState(() { _state = 'QUEUED'; _progress = 0; });
+      setState(() { _state = 'QUEUED'; _progress = 0; _display = 0.03; });
       _startPolling();
     } catch (e) {
       _snack('Erro: $e');
@@ -112,7 +132,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     setState(() => _busy = true);
     try {
       await Api.approve(widget.jobId);
-      setState(() { _state = 'QUEUED'; _progress = 0; });
+      setState(() { _state = 'QUEUED'; _progress = 0; _display = 0.03; });
       _startPolling();
     } catch (e) {
       _snack('Erro: $e');
@@ -188,8 +208,8 @@ class _ProgressScreenState extends State<ProgressScreen> {
         Text('${tr('failed')}\n${_error ?? ''}', textAlign: TextAlign.center),
       ]);
     }
-    final u = _unified;
-    final pct = (u.progress * 100).round().clamp(0, 99);
+    final u = _target;
+    final pct = (_display * 100).round().clamp(1, 99);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -201,7 +221,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
         const SizedBox(height: 12),
         ClipRRect(
           borderRadius: BorderRadius.circular(10),
-          child: LinearProgressIndicator(value: u.progress, minHeight: 14),
+          child: LinearProgressIndicator(value: _display, minHeight: 14),
         ),
       ]),
     );
