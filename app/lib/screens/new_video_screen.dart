@@ -23,7 +23,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
   final _objective = TextEditingController();
   String _style = 'dinamico';
   String _lang = 'pt';
-  String _model = ''; // '' = padrão do backend
+  String _model = 'deepseek-v4-flash';
   List<String> _models = [];
   bool _sending = false;
 
@@ -54,7 +54,14 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
 
   Future<void> _loadModels() async {
     final m = await Api.models();
-    if (mounted) setState(() => _models = m);
+    if (mounted) {
+      setState(() {
+        _models = m;
+        if (!_models.contains(_model) && _model != 'deepseek-v4-flash') {
+          _model = _models.isNotEmpty ? _models.first : 'deepseek-v4-flash';
+        }
+      });
+    }
   }
 
   Future<void> _openSettings() async {
@@ -210,14 +217,15 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
           ]),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            initialValue: _model,
+            initialValue: _models.contains(_model) || _model == 'deepseek-v4-flash' ? _model : (_models.isNotEmpty ? _models.first : 'deepseek-v4-flash'),
             isExpanded: true,
             decoration: InputDecoration(labelText: tr('ia'), border: const OutlineInputBorder()),
             items: [
-              DropdownMenuItem(value: '', child: Text(tr('iaDefault'))),
+              if (!_models.contains('deepseek-v4-flash'))
+                const DropdownMenuItem(value: 'deepseek-v4-flash', child: Text('deepseek-v4-flash')),
               ..._models.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))),
             ],
-            onChanged: (v) => setState(() => _model = v ?? ''),
+            onChanged: (v) => setState(() => _model = v ?? 'deepseek-v4-flash'),
           ),
           const SizedBox(height: 24),
           GerarButton(
