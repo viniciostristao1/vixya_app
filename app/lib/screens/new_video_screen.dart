@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../api.dart';
 import '../config.dart';
@@ -48,16 +49,55 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<File> _toInternal(File src) async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final vixyaDir = Directory('${dir.path}/vixya_pick');
+      if (!await vixyaDir.exists()) await vixyaDir.create(recursive: true);
+      final nomedia = File('${vixyaDir.path}/.nomedia');
+      if (!await nomedia.exists()) await nomedia.create();
+      final name = src.path.split('/').last;
+      final dst = File('${vixyaDir.path}/${DateTime.now().millisecondsSinceEpoch}_$name');
+      if (await dst.exists()) await dst.delete();
+      return await src.copy(dst.path);
+    } catch (_) {
+      return src;
+    }
+  }
+
   Future<void> _pickVideo() async {
     final r = await FilePicker.platform.pickFiles(type: FileType.video);
     final p = r?.files.single.path;
-    if (p != null) setState(() => _video = File(p));
+    if (p != null) {
+      final f = await _toInternal(File(p));
+      if (mounted) setState(() => _video = f);
+    } else if (r?.files.single.bytes != null) {
+      final dir = await getTemporaryDirectory();
+      final vixyaDir = Directory('${dir.path}/vixya_pick');
+      if (!await vixyaDir.exists()) await vixyaDir.create(recursive: true);
+      final f = File('${vixyaDir.path}/${DateTime.now().millisecondsSinceEpoch}_${r!.files.single.name}');
+      await f.writeAsBytes(r.files.single.bytes!);
+      if (mounted) setState(() => _video = f);
+    }
   }
 
   Future<void> _pickShots() async {
     final r = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: true);
     if (r != null) {
-      setState(() => _shots.addAll(r.files.where((f) => f.path != null).map((f) => File(f.path!))));
+      final List<File> copied = [];
+      for (final pf in r.files) {
+        if (pf.path != null) {
+          copied.add(await _toInternal(File(pf.path!)));
+        } else if (pf.bytes != null) {
+          final dir = await getTemporaryDirectory();
+          final vixyaDir = Directory('${dir.path}/vixya_pick');
+          if (!await vixyaDir.exists()) await vixyaDir.create(recursive: true);
+          final f = File('${vixyaDir.path}/${DateTime.now().millisecondsSinceEpoch}_${pf.name}');
+          await f.writeAsBytes(pf.bytes!);
+          copied.add(f);
+        }
+      }
+      if (mounted && copied.isNotEmpty) setState(() => _shots.addAll(copied));
     }
   }
 

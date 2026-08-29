@@ -94,19 +94,6 @@ class VixyaTheme {
 
 const kThemes = <VixyaTheme>[
   VixyaTheme(
-      id: 'gamer1',
-      name: 'Gamer Azul×Vermelho',
-      tag: 'degradê + brilho neon',
-      bg: Color(0xFF0A0E1A),
-      surface: Color(0xFF141B2E),
-      onBg: Color(0xFFEAF0FF),
-      muted: Color(0xFF7E8AA8),
-      primary: Color(0xFF2563EB),
-      primaryOn: Colors.white,
-      accent: Color(0xFFEF4444),
-      btnGradient: [Color(0xFF2563EB), Color(0xFFEF4444)],
-      glow: true),
-  VixyaTheme(
       id: 'gamer2',
       name: 'Gamer Vermelho×Azul',
       tag: 'fundo preto + brilho',
@@ -122,15 +109,14 @@ const kThemes = <VixyaTheme>[
   VixyaTheme(
       id: 'cyber',
       name: 'Cyberpunk',
-      tag: 'neon verde/magenta',
+      tag: 'verde neon',
       bg: Color(0xFF0B0F0C),
       surface: Color(0xFF141B15),
       onBg: Color(0xFFEAFFF0),
       muted: Color(0xFF6FA083),
-      primary: Color(0xFF16B87A),
-      primaryOn: Color(0xFF04140C),
-      accent: Color(0xFFE0148A),
-      btnGradient: [Color(0xFF16B87A), Color(0xFFE0148A)],
+      primary: Color(0xFF00E676),
+      primaryOn: Colors.white,
+      accent: Color(0xFF00E676),
       glow: true),
   VixyaTheme(
       id: 'sunset',
