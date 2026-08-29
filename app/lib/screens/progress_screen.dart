@@ -19,6 +19,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Timer? _timer;
   String _state = 'QUEUED';
   int _version = 1;
+  int _progress = 0;
   String? _error;
   bool _busy = false;
   VideoPlayerController? _player;
@@ -58,6 +59,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       setState(() {
         _state = s['state'] as String? ?? _state;
         _version = (s['version'] as int?) ?? _version;
+        _progress = (s['progress'] as int?) ?? _progress;
         _error = s['error'] as String?;
       });
       if (_state == 'WAITING_APPROVAL' && _loadedVersion != _version) {
@@ -90,7 +92,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     try {
       await Api.requestVersion(widget.jobId);
       _loadedVersion = -1;
-      setState(() => _state = 'QUEUED');
+      setState(() { _state = 'QUEUED'; _progress = 0; });
       _startPolling();
     } catch (e) {
       _snack('Erro: $e');
@@ -103,7 +105,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     setState(() => _busy = true);
     try {
       await Api.approve(widget.jobId);
-      setState(() => _state = 'QUEUED');
+      setState(() { _state = 'QUEUED'; _progress = 0; });
       _startPolling();
     } catch (e) {
       _snack('Erro: $e');
@@ -179,8 +181,23 @@ class _ProgressScreenState extends State<ProgressScreen> {
         Text('Não deu certo.\n${_error ?? ''}', textAlign: TextAlign.center),
       ]);
     }
+    final showPct = _state == 'RENDERING' && _progress > 0;
     return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      const CircularProgressIndicator(),
+      if (showPct)
+        SizedBox(
+          width: 96,
+          height: 96,
+          child: Stack(alignment: Alignment.center, children: [
+            SizedBox(
+              width: 96,
+              height: 96,
+              child: CircularProgressIndicator(value: _progress / 100, strokeWidth: 7),
+            ),
+            Text('$_progress%', style: Theme.of(context).textTheme.titleLarge),
+          ]),
+        )
+      else
+        const CircularProgressIndicator(),
       const SizedBox(height: 16),
       Text(_labels[_state] ?? _state, style: Theme.of(context).textTheme.titleMedium),
     ]);
