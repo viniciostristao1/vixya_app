@@ -181,23 +181,27 @@ class _ProgressScreenState extends State<ProgressScreen> {
         Text('Não deu certo.\n${_error ?? ''}', textAlign: TextAlign.center),
       ]);
     }
-    final showPct = _state == 'RENDERING' && _progress > 0;
-    return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      if (showPct)
-        SizedBox(
-          width: 96,
-          height: 96,
-          child: Stack(alignment: Alignment.center, children: [
-            SizedBox(
-              width: 96,
-              height: 96,
-              child: CircularProgressIndicator(value: _progress / 100, strokeWidth: 7),
-            ),
-            Text('$_progress%', style: Theme.of(context).textTheme.titleLarge),
+    // durante o render (preview E final): barra horizontal 0-100%
+    if (_state == 'RENDERING' && _progress > 0) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(_labels[_state] ?? _state, style: Theme.of(context).textTheme.titleMedium),
+            Text('$_progress%',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
           ]),
-        )
-      else
-        const CircularProgressIndicator(),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: LinearProgressIndicator(value: _progress / 100, minHeight: 14),
+          ),
+        ]),
+      );
+    }
+    // demais fases (na fila / analisando / roteiro): rodinha indeterminada
+    return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+      const CircularProgressIndicator(),
       const SizedBox(height: 16),
       Text(_labels[_state] ?? _state, style: Theme.of(context).textTheme.titleMedium),
     ]);
