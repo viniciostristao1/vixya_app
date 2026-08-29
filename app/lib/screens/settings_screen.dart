@@ -24,9 +24,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await Config.save(_url.text, _token.text);
     try {
       final h = await Api.health();
-      setState(() => _msg = 'Conectado \u2713  (disco livre ${h['disk_free_gb']} GB)');
+      setState(() => _msg = tr('connected', {'n': '${h['disk_free_gb']}'}));
     } catch (e) {
-      setState(() => _msg = 'N\u00e3o conectou: $e');
+      setState(() => _msg = tr('notConnected', {'e': '$e'}));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -40,9 +40,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _token.text = Config.token;
     try {
       final h = await Api.health();
-      setState(() => _msg = 'Restaurado \u2713  (disco livre ${h['disk_free_gb']} GB)');
+      setState(() => _msg = tr('restored', {'n': '${h['disk_free_gb']}'}));
     } catch (e) {
-      setState(() => _msg = 'Restaurado, mas n\u00e3o conectou: $e');
+      setState(() => _msg = tr('restoredFail', {'e': '$e'}));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -103,13 +103,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Configura\u00e7\u00f5es')),
+      appBar: AppBar(title: Text(tr('settings'))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Card(
             child: ExpansionTile(
-              title: const Text('Temas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              title: Text(tr('themes'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               subtitle: Text(themeCtrl.current.value.name, style: TextStyle(color: themeCtrl.current.value.muted, fontSize: 12)),
               trailing: Icon(_themesExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
               onExpansionChanged: (v) => setState(() => _themesExpanded = v),
@@ -123,7 +123,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           Card(
             child: ExpansionTile(
-              title: const Text('Idiomas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              title: Text(tr('languages'), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               subtitle: Text(langCtrl.current.value.label, style: TextStyle(color: themeCtrl.current.value.muted, fontSize: 12)),
               trailing: Icon(_langsExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
               onExpansionChanged: (v) => setState(() => _langsExpanded = v),
@@ -135,12 +135,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const Divider(height: 32),
-          const Text('Endere\u00e7o do backend (VPS)'),
+          Text(tr('backendUrl')),
           const SizedBox(height: 6),
           TextField(controller: _url, keyboardType: TextInputType.url,
               decoration: const InputDecoration(hintText: 'https://seu-servidor:8090', border: OutlineInputBorder())),
           const SizedBox(height: 16),
-          const Text('Token (se o backend exigir)'),
+          Text(tr('token')),
           const SizedBox(height: 6),
           TextField(controller: _token, obscureText: true,
               decoration: const InputDecoration(border: OutlineInputBorder())),
@@ -150,15 +150,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await Config.save(_url.text, _token.text);
               if (mounted) Navigator.pop(context);
             },
-            child: const Text('Salvar'),
+            child: Text(tr('save')),
           ),
           const SizedBox(height: 8),
-          OutlinedButton(onPressed: _busy ? null : _test, child: const Text('Testar conex\u00e3o')),
+          OutlinedButton(onPressed: _busy ? null : _test, child: Text(tr('testConnection'))),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _busy ? null : _restore,
             icon: const Icon(Icons.refresh),
-            label: const Text('Restaurar endere\u00e7o autom\u00e1tico'),
+            label: Text(tr('restoreAuto')),
           ),
           if (_msg != null) Padding(padding: const EdgeInsets.only(top: 16), child: Text(_msg!)),
         ],

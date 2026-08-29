@@ -21,16 +21,18 @@ class VixyaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<VixyaTheme>(
       valueListenable: themeCtrl.current,
-      builder: (context, t, _) => MaterialApp(
-        title: 'Vixya',
-        debugShowCheckedModeBanner: false,
-        theme: t.toThemeData(),
-        // pinta o fundo (sólido ou degradê) atrás de todas as telas
-        builder: (context, child) => DecoratedBox(
-          decoration: t.backgroundDecoration,
-          child: child,
+      builder: (context, t, _) => ValueListenableBuilder<AppLanguage>(
+        valueListenable: langCtrl.current,
+        builder: (context, l, _) => MaterialApp(
+          title: 'Vixya',
+          debugShowCheckedModeBanner: false,
+          theme: t.toThemeData(),
+          builder: (context, child) => DecoratedBox(
+            decoration: t.backgroundDecoration,
+            child: child,
+          ),
+          home: const NewVideoScreen(),
         ),
-        home: const NewVideoScreen(),
       ),
     );
   }

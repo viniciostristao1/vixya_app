@@ -151,13 +151,13 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
         ]),
         actions: [
           IconButton(
-            tooltip: 'Recarregar IAs',
+            tooltip: tr('reloadIA'),
             icon: const Icon(Icons.refresh),
             onPressed: () async {
               await _loadModels();
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(_models.isEmpty ? 'Ainda sem conexão' : '${_models.length} IAs disponíveis')));
+                  content: Text(_models.isEmpty ? tr('noConnection') : tr('iasAvailable', {'n': '${_models.length}'}))));
             },
           ),
           IconButton(onPressed: _openSettings, icon: const Icon(Icons.settings)),
@@ -169,22 +169,20 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
           if (!Config.isSet)
             Card(
               color: Theme.of(context).colorScheme.errorContainer,
-              child: const Padding(
-                padding: EdgeInsets.all(12),
-                child: Text('Toque em ⚙️ e informe o endereço do backend para começar.'),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Text(tr('backendNeeded')),
               ),
             ),
-          _tile(Icons.videocam,
-              _video == null ? 'Adicionar vídeo (gravação de tela)' : _video!.path.split('/').last, _pickVideo),
-          _tile(Icons.image,
-              _shots.isEmpty ? 'Adicionar prints (opcional)' : '${_shots.length} print(s)', _pickShots),
+          _tile(Icons.videocam, _video == null ? tr('addVideo') : _video!.path.split('/').last, _pickVideo),
+          _tile(Icons.image, _shots.isEmpty ? tr('addPrints') : tr('printsCount', {'n': '${_shots.length}'}), _pickShots),
           const SizedBox(height: 16),
           TextField(
             controller: _objective,
             minLines: 2,
             maxLines: 4,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(labelText: 'O que você quer divulgar?', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('objective'), border: const OutlineInputBorder()),
           ),
           const SizedBox(height: 16),
           Row(children: [
@@ -192,7 +190,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
               child: DropdownButtonFormField<String>(
                 initialValue: _style,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Estilo', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr('style'), border: const OutlineInputBorder()),
                 items: _styles.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                 onChanged: (v) => setState(() => _style = v ?? 'dinamico'),
               ),
@@ -202,7 +200,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
               child: DropdownButtonFormField<String>(
                 initialValue: _lang,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Idioma da legenda', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr('langLabel'), border: const OutlineInputBorder()),
                 items: _langs.entries
                     .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis)))
                     .toList(),
@@ -214,9 +212,9 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
           DropdownButtonFormField<String>(
             initialValue: _model,
             isExpanded: true,
-            decoration: const InputDecoration(labelText: 'IA', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('ia'), border: const OutlineInputBorder()),
             items: [
-              const DropdownMenuItem(value: '', child: Text('padrão')),
+              DropdownMenuItem(value: '', child: Text(tr('iaDefault'))),
               ..._models.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))),
             ],
             onChanged: (v) => setState(() => _model = v ?? ''),
@@ -225,7 +223,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
           GerarButton(
             onPressed: (ready && !_sending) ? _generate : null,
             sending: _sending,
-            label: _sending ? 'Enviando...' : 'GERAR VÍDEO',
+            label: _sending ? tr('sending') : tr('generate'),
           ),
           const SizedBox(height: 12),
           Text('v0.1.3 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),

@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 
 import '../api.dart';
+import '../i18n.dart';
 
 class ProgressScreen extends StatefulWidget {
   final String jobId;
@@ -25,13 +26,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
   VideoPlayerController? _player;
   int _loadedVersion = -1;
 
-  static const _labels = {
-    'QUEUED': 'Na fila...',
-    'ANALYZING': 'Analisando o material...',
-    'PLANNING': 'A IA está criando o roteiro...',
-    'RENDERING': 'Montando o vídeo...',
-    'PREVIEW': 'Preparando o preview...',
-  };
+  Map<String, String> get _labels => {
+        'QUEUED': tr('queued'),
+        'ANALYZING': tr('analyzing'),
+        'PLANNING': tr('planning'),
+        'RENDERING': tr('rendering'),
+        'PREVIEW': tr('preparingPreview'),
+      };
 
   @override
   void initState() {
@@ -138,7 +139,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     final failed = _state == 'FAILED' || _state == 'CANCELLED';
     final showPlayer = _player != null && _player!.value.isInitialized;
     return Scaffold(
-      appBar: AppBar(title: const Text('Seu vídeo')),
+      appBar: AppBar(title: Text(tr('yourVideo'))),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(children: [
@@ -147,16 +148,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
           if (waiting)
             Row(children: [
               Expanded(child: OutlinedButton.icon(
-                onPressed: _busy ? null : _otherVersion, icon: const Icon(Icons.refresh), label: const Text('Outra versão'))),
+                onPressed: _busy ? null : _otherVersion, icon: const Icon(Icons.refresh), label: Text(tr('otherVersion')))),
               const SizedBox(width: 12),
               Expanded(child: FilledButton.icon(
-                onPressed: _busy ? null : _approve, icon: const Icon(Icons.check), label: const Text('Aprovar'))),
+                onPressed: _busy ? null : _approve, icon: const Icon(Icons.check), label: Text(tr('approve')))),
             ]),
           if (done)
             FilledButton.icon(
               onPressed: _busy ? null : _shareFinal,
               icon: const Icon(Icons.ios_share),
-              label: const Text('Salvar / Compartilhar'),
+              label: Text(tr('saveShare')),
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
             ),
         ]),
@@ -178,7 +179,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         const Icon(Icons.error_outline, size: 48),
         const SizedBox(height: 12),
-        Text('Não deu certo.\n${_error ?? ''}', textAlign: TextAlign.center),
+        Text('${tr('failed')}\n${_error ?? ''}', textAlign: TextAlign.center),
       ]);
     }
     // durante o render (preview E final): barra horizontal 0-100%
