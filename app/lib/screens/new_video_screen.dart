@@ -21,13 +21,22 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
   File? _video;
   final List<File> _shots = [];
   final _objective = TextEditingController();
-  String _style = 'dinamico';
+  String _style = 'auto';
   String _lang = 'pt';
   String _model = 'deepseek-v4-flash';
   List<String> _models = [];
   bool _sending = false;
 
-  static const _styles = ['dinamico', 'minimalista', 'tutorial', 'marketing'];
+  static const _styles = ['auto', 'dinamico', 'minimalista', 'tutorial', 'marketing', 'hook_viral', 'oferta'];
+  static const _styleLabels = {
+    'auto': 'Auto Profissional',
+    'dinamico': 'Dinâmico',
+    'minimalista': 'Minimalista',
+    'tutorial': 'Tutorial',
+    'marketing': 'Marketing',
+    'hook_viral': 'Hook Viral',
+    'oferta': 'Oferta',
+  };
   static const _langs = {'pt': 'Português', 'es': 'Espanhol', 'en': 'Inglês'};
 
   @override
@@ -235,8 +244,8 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
                 initialValue: _style,
                 isExpanded: true,
                 decoration: InputDecoration(labelText: tr('style'), border: const OutlineInputBorder()),
-                items: _styles.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                onChanged: (v) => setState(() => _style = v ?? 'dinamico'),
+                items: _styles.map((s) => DropdownMenuItem(value: s, child: Text(_styleLabels[s] ?? s))).toList(),
+                onChanged: (v) => setState(() => _style = v ?? 'auto'),
               ),
             ),
             const SizedBox(width: 12),
@@ -252,6 +261,12 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
               ),
             ),
           ]),
+          if (_style == 'auto')
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text('Auto Profissional: IA escolhe estilo e ativa karaoke, CTA pulsa, progress bar e zoom sozinha.',
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary)),
+            ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             initialValue: _models.contains(_model) || _model == 'deepseek-v4-flash' ? _model : (_models.isNotEmpty ? _models.first : 'deepseek-v4-flash'),
@@ -259,7 +274,9 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             decoration: InputDecoration(labelText: tr('ia'), border: const OutlineInputBorder()),
             items: [
               if (!_models.contains('deepseek-v4-flash'))
-                const DropdownMenuItem(value: 'deepseek-v4-flash', child: Text('deepseek-v4-flash')),
+                const DropdownMenuItem(value: 'deepseek-v4-flash', child: Text('deepseek-v4-flash ★ padrão')),
+              if (!_models.contains('deepseek-v4-flash-vision-exp'))
+                const DropdownMenuItem(value: 'deepseek-v4-flash-vision-exp', child: Text('deepseek-v4-flash-vision-exp 👁️ Vision')),
               ..._models.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))),
             ],
             onChanged: (v) => setState(() => _model = v ?? 'deepseek-v4-flash'),
@@ -271,7 +288,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             label: _sending ? tr('sending') : tr('generate'),
           ),
           const SizedBox(height: 12),
-          Text('v0.1.12 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+          Text('v0.1.13 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
         ],
       ),
     );
