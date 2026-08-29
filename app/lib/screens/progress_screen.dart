@@ -46,23 +46,18 @@ class _ProgressScreenState extends State<ProgressScreen> {
   void initState() {
     super.initState();
     _startPolling();
-    _anim = Timer.periodic(const Duration(milliseconds: 80), (_) {
-      if (!mounted) return;
+    _anim = Timer.periodic(const Duration(milliseconds: 70), (_) {
+      if (!mounted || _state == 'WAITING_APPROVAL' || _state == 'COMPLETED') return;
       final t = _target.progress;
-      if (_display < t) {
-        final step = (t - _display) * 0.18 + 0.003;
+      if (_display < t - 0.005) {
+        final step = (t - _display) * 0.22 + 0.008;
         setState(() => _display = (_display + step).clamp(0.0, t));
-      } else if (_display > t + 0.015) {
-        setState(() => _display = t);
+      } else if (_display < t) {
+        setState(() => _display = (_display + 0.006).clamp(0.0, t));
+      } else if (_display < 0.90) {
+        setState(() => _display = (_display + 0.0035).clamp(0.0, 0.90));
       }
-      if (_state == 'QUEUED' && _display < 0.07) {
-        setState(() => _display = (_display + 0.002).clamp(0.0, 0.07));
-      } else if ((_state == 'ANALYZING' || _state == 'PLANNING') && _display < _target.progress - 0.005) {
-        setState(() => _display = (_display + 0.003).clamp(0.0, _target.progress - 0.005));
-      }
-      if (_state == 'RENDERING' && _progress == 0 && _display < 0.34) {
-        setState(() => _display = (_display + 0.002).clamp(0.0, 0.34));
-      }
+      if (_display > t + 0.02) setState(() => _display = t);
     });
   }
 
