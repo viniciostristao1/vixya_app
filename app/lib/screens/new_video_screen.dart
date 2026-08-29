@@ -234,7 +234,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             label: _sending ? tr('sending') : tr('generate'),
           ),
           const SizedBox(height: 12),
-          Text('v0.1.8 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+          Text('v0.1.9 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
         ],
       ),
     );

@@ -46,18 +46,17 @@ class _ProgressScreenState extends State<ProgressScreen> {
   void initState() {
     super.initState();
     _startPolling();
-    _anim = Timer.periodic(const Duration(milliseconds: 70), (_) {
+    _anim = Timer.periodic(const Duration(milliseconds: 90), (_) {
       if (!mounted || _state == 'WAITING_APPROVAL' || _state == 'COMPLETED') return;
       final t = _target.progress;
-      if (_display < t - 0.005) {
-        final step = (t - _display) * 0.22 + 0.008;
+      if (_display < t - 0.008) {
+        final step = (t - _display) * 0.20 + 0.007;
         setState(() => _display = (_display + step).clamp(0.0, t));
       } else if (_display < t) {
-        setState(() => _display = (_display + 0.006).clamp(0.0, t));
-      } else if (_display < 0.90) {
-        setState(() => _display = (_display + 0.0035).clamp(0.0, 0.90));
+        setState(() => _display = (_display + 0.005).clamp(0.0, t));
+      } else if (_display < 0.88) {
+        setState(() => _display = (_display + 0.002).clamp(0.0, 0.88));
       }
-      if (_display > t + 0.02) setState(() => _display = t);
     });
   }
 
