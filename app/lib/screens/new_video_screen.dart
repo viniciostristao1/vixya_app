@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../config.dart';
+import '../theme.dart';
 import 'progress_screen.dart';
 import 'settings_screen.dart';
 
@@ -86,7 +87,14 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
     final ready = _video != null && _objective.text.trim().isNotEmpty && Config.isSet;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Vixya'),
+        title: Row(mainAxisSize: MainAxisSize.min, children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: Image.asset('assets/icon/icon.png', width: 30, height: 30, fit: BoxFit.cover),
+          ),
+          const SizedBox(width: 10),
+          const Text('Vixya'),
+        ]),
         actions: [
           IconButton(
             tooltip: 'Recarregar IAs',
@@ -160,13 +168,10 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             onChanged: (v) => setState(() => _model = v ?? ''),
           ),
           const SizedBox(height: 24),
-          FilledButton.icon(
+          GerarButton(
             onPressed: (ready && !_sending) ? _generate : null,
-            icon: _sending
-                ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                : const Icon(Icons.auto_awesome),
-            label: Text(_sending ? 'Enviando...' : 'GERAR VÍDEO'),
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            sending: _sending,
+            label: _sending ? 'Enviando...' : 'GERAR VÍDEO',
           ),
           const SizedBox(height: 12),
           Text('v0.1.3 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),

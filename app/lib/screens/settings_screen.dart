@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../config.dart';
+import '../theme.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -44,6 +45,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Widget _themeTile(VixyaTheme t) {
+    final selected = themeCtrl.current.value.id == t.id;
+    return Card(
+      child: ListTile(
+        onTap: () async {
+          await themeCtrl.set(t);
+          if (mounted) setState(() {});
+        },
+        leading: Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(11),
+            gradient: LinearGradient(colors: t.btnGradient ?? [t.primary, t.accent]),
+            boxShadow: t.glow
+                ? [BoxShadow(color: t.primary.withValues(alpha: .5), blurRadius: 10, spreadRadius: -2)]
+                : null,
+          ),
+        ),
+        title: Text(t.name),
+        subtitle: t.tag.isNotEmpty ? Text(t.tag) : null,
+        trailing: selected ? Icon(Icons.check_circle, color: t.primary) : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -51,6 +78,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          const Text('Tema', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 8),
+          ...kThemes.map(_themeTile),
+          const Divider(height: 32),
           const Text('Endere\u00e7o do backend (VPS)'),
           const SizedBox(height: 6),
           TextField(controller: _url, keyboardType: TextInputType.url,
