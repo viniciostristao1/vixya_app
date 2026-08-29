@@ -46,7 +46,9 @@ jobs:
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || \
             sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' android/app/src/main/AndroidManifest.xml
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
-          echo "== manifesto final =="; grep -E "uses-permission|<application" android/app/src/main/AndroidManifest.xml
+          # nome do app na tela inicial = "Vixya" (nao "vixya_app")
+          sed -i -E 's/android:label="[^"]*"/android:label="Vixya"/' android/app/src/main/AndroidManifest.xml
+          echo "== manifesto final =="; grep -E "uses-permission|android:label|<application" android/app/src/main/AndroidManifest.xml
 
       - name: Dependências
         working-directory: app
@@ -57,6 +59,10 @@ jobs:
           find ~/.pub-cache -type f -name build.gradle -path '*/android/*' -exec sed -i -E 's/(compileSdk(Version)?)[[:space:]]+(flutter\.compileSdkVersion|[0-9]+)/\1 36/g' {} +
           find ~/.pub-cache -type f -name build.gradle.kts -path '*/android/*' -exec sed -i -E 's/(compileSdk)[[:space:]]*=[[:space:]]*(flutter\.compileSdkVersion|[0-9]+)/\1 = 36/g' {} +
           echo "file_picker apos patch:"; grep -rn 'compileSdk' ~/.pub-cache/hosted/pub.dev/file_picker-*/android/build.gradle || true
+          # gera os icones do launcher a partir de assets/icon/icon.png
+          echo "== gerando icone do app =="
+          dart run flutter_launcher_icons
+          ls -la android/app/src/main/res/mipmap-xxxhdpi/ || true
 
       - name: Build APK (release, universal, assinado com chave fixa)
         working-directory: app

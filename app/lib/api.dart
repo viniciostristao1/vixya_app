@@ -57,12 +57,14 @@ class Api {
     required String objective,
     String style = 'dinamico',
     String? model,
+    String language = 'pt',
   }) async {
     Future<http.Response> attempt() async {
       final req = http.MultipartRequest('POST', _u('/jobs'))
         ..headers.addAll(_headers)
         ..fields['objective'] = objective
-        ..fields['style'] = style;
+        ..fields['style'] = style
+        ..fields['language'] = language;
       if (model != null && model.isNotEmpty) req.fields['model'] = model;
       for (final f in files) {
         req.files.add(await http.MultipartFile.fromPath('files', f.path));

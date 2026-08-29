@@ -19,11 +19,13 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
   final List<File> _shots = [];
   final _objective = TextEditingController();
   String _style = 'dinamico';
+  String _lang = 'pt';
   String _model = ''; // '' = padrão do backend
   List<String> _models = [];
   bool _sending = false;
 
   static const _styles = ['dinamico', 'minimalista', 'tutorial', 'marketing'];
+  static const _langs = {'pt': 'Português', 'es': 'Espanhol', 'en': 'Inglês'};
 
   @override
   void initState() {
@@ -67,6 +69,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
         objective: _objective.text.trim(),
         style: _style,
         model: _model,
+        language: _lang,
       );
       if (mounted) {
         Navigator.push(context, MaterialPageRoute(builder: (_) => ProgressScreen(jobId: id)));
@@ -126,6 +129,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             Expanded(
               child: DropdownButtonFormField<String>(
                 initialValue: _style,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Estilo', border: OutlineInputBorder()),
                 items: _styles.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                 onChanged: (v) => setState(() => _style = v ?? 'dinamico'),
@@ -134,17 +138,27 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: DropdownButtonFormField<String>(
-                initialValue: _model,
+                initialValue: _lang,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'IA', border: OutlineInputBorder()),
-                items: [
-                  const DropdownMenuItem(value: '', child: Text('padrão')),
-                  ..._models.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))),
-                ],
-                onChanged: (v) => setState(() => _model = v ?? ''),
+                decoration: const InputDecoration(labelText: 'Idioma da legenda', border: OutlineInputBorder()),
+                items: _langs.entries
+                    .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value, overflow: TextOverflow.ellipsis)))
+                    .toList(),
+                onChanged: (v) => setState(() => _lang = v ?? 'pt'),
               ),
             ),
           ]),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            initialValue: _model,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'IA', border: OutlineInputBorder()),
+            items: [
+              const DropdownMenuItem(value: '', child: Text('padrão')),
+              ..._models.map((m) => DropdownMenuItem(value: m, child: Text(m, overflow: TextOverflow.ellipsis))),
+            ],
+            onChanged: (v) => setState(() => _model = v ?? ''),
+          ),
           const SizedBox(height: 24),
           FilledButton.icon(
             onPressed: (ready && !_sending) ? _generate : null,
