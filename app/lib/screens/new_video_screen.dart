@@ -70,13 +70,33 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _ensureNoMedia() async {
+    try {
+      final tmp = await getTemporaryDirectory();
+      for (final sub in ['vixya_pick', 'file_picker']) {
+        final d = Directory('${tmp.path}/$sub');
+        if (!await d.exists()) await d.create(recursive: true);
+        final n = File('${d.path}/.nomedia');
+        if (!await n.exists()) await n.create();
+      }
+      final cache = Directory('${tmp.path}/../cache');
+      if (await cache.exists()) {
+        for (final e in await cache.list().toList()) {
+          if (e is Directory && e.path.contains('file_picker')) {
+            final n = File('${e.path}/.nomedia');
+            if (!await n.exists()) await n.create();
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
   Future<File> _toInternal(File src) async {
     try {
+      await _ensureNoMedia();
       final dir = await getTemporaryDirectory();
       final vixyaDir = Directory('${dir.path}/vixya_pick');
       if (!await vixyaDir.exists()) await vixyaDir.create(recursive: true);
-      final nomedia = File('${vixyaDir.path}/.nomedia');
-      if (!await nomedia.exists()) await nomedia.create();
       final name = src.path.split('/').last;
       final dst = File('${vixyaDir.path}/${DateTime.now().millisecondsSinceEpoch}_$name');
       if (await dst.exists()) await dst.delete();
@@ -184,12 +204,29 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
           _tile(Icons.videocam, _video == null ? tr('addVideo') : _video!.path.split('/').last, _pickVideo),
           _tile(Icons.image, _shots.isEmpty ? tr('addPrints') : tr('printsCount', {'n': '${_shots.length}'}), _pickShots),
           const SizedBox(height: 16),
-          TextField(
-            controller: _objective,
-            minLines: 2,
-            maxLines: 4,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(labelText: tr('objective'), border: const OutlineInputBorder()),
+          Stack(
+            children: [
+              TextField(
+                controller: _objective,
+                minLines: 2,
+                maxLines: 4,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: tr('objective'),
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.fromLTRB(12, 12, 44, 12),
+                ),
+              ),
+              Positioned(
+                top: 2,
+                right: 2,
+                child: IconButton(
+                  tooltip: 'Limpar',
+                  icon: const Icon(Icons.cleaning_services, size: 20),
+                  onPressed: () => setState(() => _objective.clear()),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(children: [
@@ -234,7 +271,7 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
             label: _sending ? tr('sending') : tr('generate'),
           ),
           const SizedBox(height: 12),
-          Text('v0.1.10 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+          Text('v0.1.11 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
         ],
       ),
     );
