@@ -46,18 +46,22 @@ class _ProgressScreenState extends State<ProgressScreen> {
   void initState() {
     super.initState();
     _startPolling();
-    _anim = Timer.periodic(const Duration(milliseconds: 120), (_) {
+    _anim = Timer.periodic(const Duration(milliseconds: 80), (_) {
       if (!mounted) return;
       final t = _target.progress;
       if (_display < t) {
-        setState(() => _display = (_display + 0.004).clamp(0.0, t));
-      } else if (_display > t + 0.02) {
+        final step = (t - _display) * 0.18 + 0.003;
+        setState(() => _display = (_display + step).clamp(0.0, t));
+      } else if (_display > t + 0.015) {
         setState(() => _display = t);
       }
       if (_state == 'QUEUED' && _display < 0.07) {
-        setState(() => _display = (_display + 0.001).clamp(0.0, 0.07));
-      } else if ((_state == 'ANALYZING' || _state == 'PLANNING') && _display < _target.progress - 0.01) {
-        setState(() => _display = (_display + 0.002).clamp(0.0, _target.progress - 0.01));
+        setState(() => _display = (_display + 0.002).clamp(0.0, 0.07));
+      } else if ((_state == 'ANALYZING' || _state == 'PLANNING') && _display < _target.progress - 0.005) {
+        setState(() => _display = (_display + 0.003).clamp(0.0, _target.progress - 0.005));
+      }
+      if (_state == 'RENDERING' && _progress == 0 && _display < 0.34) {
+        setState(() => _display = (_display + 0.002).clamp(0.0, 0.34));
       }
     });
   }
@@ -117,10 +121,12 @@ class _ProgressScreenState extends State<ProgressScreen> {
   Future<void> _otherVersion() async {
     setState(() => _busy = true);
     try {
+      await _player?.pause();
+      await _player?.dispose();
+      if (mounted) setState(() { _player = null; _loadedVersion = -1; _state = 'QUEUED'; _progress = 0; _display = 0.02; _error = null; });
       await Api.requestVersion(widget.jobId);
-      _loadedVersion = -1;
-      setState(() { _state = 'QUEUED'; _progress = 0; _display = 0.03; });
       _startPolling();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tr('buildingScript')} (v${_version + 1})')));
     } catch (e) {
       _snack('Erro: $e');
     } finally {
@@ -192,14 +198,18 @@ class _ProgressScreenState extends State<ProgressScreen> {
   }
 
   Widget _center(bool showPlayer, bool failed) {
-    if (showPlayer) {
-      return AspectRatio(
-        aspectRatio: _player!.value.aspectRatio,
-        child: GestureDetector(
-          onTap: () => setState(() => _player!.value.isPlaying ? _player!.pause() : _player!.play()),
-          child: VideoPlayer(_player!),
+    if (showPlayer && _state == 'WAITING_APPROVAL') {
+      return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        AspectRatio(
+          aspectRatio: _player!.value.aspectRatio,
+          child: GestureDetector(
+            onTap: () => setState(() => _player!.value.isPlaying ? _player!.pause() : _player!.play()),
+            child: VideoPlayer(_player!),
+          ),
         ),
-      );
+        const SizedBox(height: 8),
+        Text('v$_version • ${tr('yourVideo')}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+      ]);
     }
     if (failed) {
       return Column(mainAxisAlignment: MainAxisAlignment.center, children: [
