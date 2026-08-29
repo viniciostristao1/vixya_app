@@ -29,16 +29,16 @@ class _ProgressScreenState extends State<ProgressScreen> {
   int _loadedVersion = -1;
 
   ({String label, double progress}) get _target {
-    if (_state == 'QUEUED') return (label: tr('queued'), progress: 0.08);
-    if (_state == 'ANALYZING') return (label: tr('buildingScript'), progress: 0.20);
-    if (_state == 'PLANNING') return (label: tr('buildingScript'), progress: 0.35);
+    if (_state == 'QUEUED') return (label: tr('queued'), progress: 0.10);
+    if (_state == 'ANALYZING') return (label: tr('buildingScript'), progress: 0.22);
+    if (_state == 'PLANNING') return (label: tr('buildingScript'), progress: 0.34);
     if (_state == 'RENDERING') {
       final p = _progress.clamp(0, 100) / 100.0;
-      final prog = 0.35 + p * 0.55;
+      final prog = 0.34 + p * 0.56;
       final label = p < 0.85 ? tr('buildingVideo') : tr('finalTouches');
-      return (label: label, progress: prog.clamp(0.0, 0.95));
+      return (label: label, progress: prog.clamp(0.0, 0.96));
     }
-    if (_state == 'PREVIEW') return (label: tr('finalTouches'), progress: 0.96);
+    if (_state == 'PREVIEW') return (label: tr('finalTouches'), progress: 0.97);
     return (label: _state, progress: _display);
   }
 
@@ -54,8 +54,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
         setState(() => _display = (_display + step).clamp(0.0, t));
       } else if (_display < t) {
         setState(() => _display = (_display + 0.005).clamp(0.0, t));
-      } else if (_display < 0.88) {
-        setState(() => _display = (_display + 0.002).clamp(0.0, 0.88));
+      } else if (_state == 'QUEUED' && _display < 0.09) {
+        setState(() => _display = (_display + 0.0015).clamp(0.0, 0.09));
+      } else if (_state == 'ANALYZING' && _display < 0.20) {
+        setState(() => _display = (_display + 0.0015).clamp(0.0, 0.20));
+      } else if (_state == 'PLANNING' && _display < 0.32) {
+        setState(() => _display = (_display + 0.0012).clamp(0.0, 0.32));
+      } else if (_state == 'RENDERING' && _progress == 0 && _display < 0.36) {
+        setState(() => _display = (_display + 0.001).clamp(0.0, 0.36));
       }
     });
   }
