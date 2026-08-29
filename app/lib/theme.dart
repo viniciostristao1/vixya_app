@@ -127,9 +127,10 @@ const kThemes = <VixyaTheme>[
       surface: Color(0xFF141B15),
       onBg: Color(0xFFEAFFF0),
       muted: Color(0xFF6FA083),
-      primary: Color(0xFF22E39B),
+      primary: Color(0xFF16B87A),
       primaryOn: Color(0xFF04140C),
-      accent: Color(0xFFF014A0),
+      accent: Color(0xFFE0148A),
+      btnGradient: [Color(0xFF16B87A), Color(0xFFE0148A)],
       glow: true),
   VixyaTheme(
       id: 'sunset',
@@ -191,22 +192,30 @@ class GerarButton extends StatelessWidget {
             minimumSize: const Size.fromHeight(54),
             backgroundColor: t.primary,
             foregroundColor: fg,
-            elevation: t.glow ? 10 : 0,
-            shadowColor: t.glow ? t.primary : null),
+            elevation: t.glow ? 3 : 0,
+            shadowColor: t.glow ? t.primary.withValues(alpha: .35) : null),
         child: content,
       );
     }
     return Opacity(
-      opacity: onPressed == null ? .5 : 1,
+      opacity: onPressed == null ? .45 : 1,
       child: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
               colors: t.btnGradient!, begin: Alignment.centerLeft, end: Alignment.centerRight),
           borderRadius: BorderRadius.circular(16),
-          boxShadow: t.glow
+          boxShadow: t.glow && onPressed != null
               ? [
-                  BoxShadow(color: t.btnGradient!.last.withValues(alpha: .55), blurRadius: 24, spreadRadius: -2),
-                  BoxShadow(color: t.btnGradient!.first.withValues(alpha: .45), blurRadius: 24, spreadRadius: -2),
+                  BoxShadow(
+                      color: t.primary.withValues(alpha: .28),
+                      blurRadius: 14,
+                      spreadRadius: -2,
+                      offset: const Offset(0, 4)),
+                  BoxShadow(
+                      color: t.accent.withValues(alpha: .18),
+                      blurRadius: 10,
+                      spreadRadius: -2,
+                      offset: const Offset(0, 2)),
                 ]
               : null,
         ),

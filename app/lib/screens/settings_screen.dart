@@ -15,6 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _token = TextEditingController(text: Config.token);
   String? _msg;
   bool _busy = false;
+  bool _themesExpanded = false;
 
   Future<void> _test() async {
     setState(() { _busy = true; _msg = null; });
@@ -60,7 +61,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             borderRadius: BorderRadius.circular(11),
             gradient: LinearGradient(colors: t.btnGradient ?? [t.primary, t.accent]),
             boxShadow: t.glow
-                ? [BoxShadow(color: t.primary.withValues(alpha: .5), blurRadius: 10, spreadRadius: -2)]
+                ? [BoxShadow(color: t.primary.withValues(alpha: .28), blurRadius: 6, spreadRadius: -2)]
                 : null,
           ),
         ),
@@ -78,9 +79,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Tema', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 8),
-          ...kThemes.map(_themeTile),
+          Card(
+            child: ExpansionTile(
+              title: const Text('Temas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              subtitle: Text(themeCtrl.current.value.name, style: TextStyle(color: themeCtrl.current.value.muted, fontSize: 12)),
+              trailing: Icon(_themesExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
+              onExpansionChanged: (v) => setState(() => _themesExpanded = v),
+              initiallyExpanded: _themesExpanded,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              children: kThemes.map(_themeTile).toList(),
+            ),
+          ),
           const Divider(height: 32),
           const Text('Endere\u00e7o do backend (VPS)'),
           const SizedBox(height: 6),
