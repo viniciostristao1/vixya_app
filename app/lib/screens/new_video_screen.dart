@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../api.dart';
 import '../config.dart';
+import '../i18n.dart';
 import '../theme.dart';
 import 'progress_screen.dart';
 import 'settings_screen.dart';
@@ -32,10 +33,23 @@ class _NewVideoScreenState extends State<NewVideoScreen> {
   @override
   void initState() {
     super.initState();
+    _lang = langCtrl.current.value.code;
+    langCtrl.current.addListener(_onLangChanged);
     _loadModels();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!Config.isSet) _openSettings();
     });
+  }
+
+  void _onLangChanged() {
+    if (mounted) setState(() => _lang = langCtrl.current.value.code);
+  }
+
+  @override
+  void dispose() {
+    langCtrl.current.removeListener(_onLangChanged);
+    _objective.dispose();
+    super.dispose();
   }
 
   Future<void> _loadModels() async {

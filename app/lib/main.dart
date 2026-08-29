@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'config.dart';
+import 'i18n.dart';
 import 'theme.dart';
 import 'screens/new_video_screen.dart';
 
@@ -8,6 +9,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Config.load();
   await themeCtrl.load();
+  await langCtrl.load();
   runApp(const VixyaApp());
   Config.refreshFromRemote(); // em background: não trava a abertura do app
 }

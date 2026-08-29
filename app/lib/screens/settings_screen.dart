@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../config.dart';
+import '../i18n.dart';
 import '../theme.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String? _msg;
   bool _busy = false;
   bool _themesExpanded = false;
+  bool _langsExpanded = false;
 
   Future<void> _test() async {
     setState(() { _busy = true; _msg = null; });
@@ -72,6 +74,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _langTile(AppLanguage l) {
+    final selected = langCtrl.current.value == l;
+    return Card(
+      child: ListTile(
+        onTap: () async {
+          await langCtrl.set(l);
+          if (mounted) setState(() {});
+        },
+        leading: Container(
+          width: 46,
+          height: 46,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(11),
+            border: Border.all(color: selected ? Theme.of(context).colorScheme.primary : Colors.transparent, width: 2),
+          ),
+          child: Text(l.flag, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        ),
+        title: Text(l.label),
+        subtitle: Text(l.code.toUpperCase()),
+        trailing: selected ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary) : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,6 +118,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
               children: kThemes.map(_themeTile).toList(),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: ExpansionTile(
+              title: const Text('Idiomas', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              subtitle: Text(langCtrl.current.value.label, style: TextStyle(color: themeCtrl.current.value.muted, fontSize: 12)),
+              trailing: Icon(_langsExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down),
+              onExpansionChanged: (v) => setState(() => _langsExpanded = v),
+              initiallyExpanded: _langsExpanded,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              childrenPadding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+              children: AppLanguage.values.map(_langTile).toList(),
             ),
           ),
           const Divider(height: 32),
