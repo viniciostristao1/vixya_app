@@ -76,11 +76,12 @@ class _PromptsScreenState extends State<PromptsScreen> {
       final p = _formProfile();
       await Store.saveProfile(p);
       _editingId = p.projectId;
-      _snack(tr('profileSaved'));
-    } catch (e) {
-      _snack('Erro: $e');
-    } finally {
       if (mounted) setState(() => _savingProfile = false);
+      _snack(tr('profileSaved'));
+      await _suggest(); // já preenche os "Sugeridos pela IA" logo após salvar
+    } catch (e) {
+      if (mounted) setState(() => _savingProfile = false);
+      _snack('Erro: $e');
     }
   }
 
@@ -144,8 +145,16 @@ class _PromptsScreenState extends State<PromptsScreen> {
       padding: const EdgeInsets.all(16),
       children: [
         // ---------------- Meu app (perfil) ----------------
-        Text(tr('myApp'), style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: Text(tr('myApp'), style: Theme.of(context).textTheme.titleMedium)),
+          TextButton.icon(
+            onPressed: () => _loadInto(null),
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(tr('newApp')),
+          ),
+        ]),
+        Text(tr('oneProfilePerApp'), style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 10),
         DropdownButtonFormField<String>(
           initialValue: profiles.any((p) => p.projectId == _editingId) ? _editingId : '',
           isExpanded: true,
@@ -162,7 +171,17 @@ class _PromptsScreenState extends State<PromptsScreen> {
             }
           },
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 6),
+        if (_editingId.isNotEmpty && profiles.any((p) => p.projectId == _editingId))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(children: [
+              Icon(Icons.check_circle, size: 16, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 6),
+              Expanded(child: Text(tr('editingApp', {'n': _name.text.trim()}),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.primary))),
+            ]),
+          ),
         _field(_name, tr('pName')),
         _field(_desc, tr('pDesc'), lines: 2),
         _field(_feat, tr('pFeatures'), lines: 2),
@@ -205,7 +224,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
         Text(tr('myPrompts'), style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
         if (saved.isEmpty)
-          Padding(padding: const EdgeInsets.all(8), child: Text(tr('promptHint'), style: const TextStyle(color: Colors.grey, fontSize: 12))),
+          Padding(padding: const EdgeInsets.all(8), child: Text(tr('savedEmpty'), style: const TextStyle(color: Colors.grey, fontSize: 12))),
         for (final s in saved) _promptCard(s, suggestion: false),
         const SizedBox(height: 24),
       ],

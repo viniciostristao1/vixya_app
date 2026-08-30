@@ -262,7 +262,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
           label: _sending ? tr('sending') : tr('generate'),
         ),
         const SizedBox(height: 12),
-        Text('v0.1.15 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+        Text('v0.1.16 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
       ],
     );
   }
