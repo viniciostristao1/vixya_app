@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
@@ -176,14 +177,34 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
+  Future<File> _downloadFinal() async {
+    final dir = await getTemporaryDirectory();
+    return Api.download('/jobs/${widget.jobId}/video', File('${dir.path}/vixya_${widget.jobId}.mp4'));
+  }
+
   Future<void> _shareFinal() async {
     setState(() => _busy = true);
     try {
-      final dir = await getTemporaryDirectory();
-      final f = await Api.download('/jobs/${widget.jobId}/video', File('${dir.path}/vixya_${widget.jobId}.mp4'));
+      final f = await _downloadFinal();
       await Share.shareXFiles([XFile(f.path)], text: 'Feito com Vixya');
     } catch (e) {
       _snack('Erro: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _saveToGallery() async {
+    setState(() => _busy = true);
+    try {
+      final f = await _downloadFinal();
+      if (!await Gal.hasAccess()) await Gal.requestAccess();
+      await Gal.putVideo(f.path, album: 'Vixya');
+      _snack(tr('savedGallery'));
+    } on GalException catch (e) {
+      _snack('${tr('galleryFail')}: ${e.type.message}');
+    } catch (e) {
+      _snack('${tr('galleryFail')}: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -215,12 +236,25 @@ class _ProgressScreenState extends State<ProgressScreen> {
                 onPressed: _busy ? null : _approve, icon: const Icon(Icons.check), label: Text(tr('approve')))),
             ]),
           if (done)
-            FilledButton.icon(
-              onPressed: _busy ? null : _shareFinal,
-              icon: const Icon(Icons.ios_share),
-              label: Text(tr('saveShare')),
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-            ),
+            Row(children: [
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _busy ? null : _saveToGallery,
+                  icon: const Icon(Icons.download),
+                  label: Text(tr('saveGallery')),
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _busy ? null : _shareFinal,
+                  icon: const Icon(Icons.ios_share),
+                  label: Text(tr('share')),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                ),
+              ),
+            ]),
         ]),
       ),
     );

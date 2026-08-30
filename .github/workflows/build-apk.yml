@@ -45,6 +45,9 @@ jobs:
           # NAO no main -> APK release nasce SEM acesso a rede (erro "Operation not permitted errno=1").
           grep -q 'android.permission.INTERNET' android/app/src/main/AndroidManifest.xml || \
             sed -i 's|<application|<uses-permission android:name="android.permission.INTERNET"/>\n    <application|' android/app/src/main/AndroidManifest.xml
+          # salvar vídeo na galeria (plugin gal): Android <=29 exige WRITE_EXTERNAL_STORAGE
+          grep -q 'WRITE_EXTERNAL_STORAGE' android/app/src/main/AndroidManifest.xml || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>\n    <application|' android/app/src/main/AndroidManifest.xml
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
           # nome do app na tela inicial = "Vixya" (nao "vixya_app")
           sed -i -E 's/android:label="[^"]*"/android:label="Vixya"/' android/app/src/main/AndroidManifest.xml

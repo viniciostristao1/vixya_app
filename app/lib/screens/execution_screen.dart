@@ -70,26 +70,24 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     super.dispose();
   }
 
-  Future<void> _ensureNoMedia() async {
-    try {
-      final tmp = await getTemporaryDirectory();
-      for (final sub in ['vixya_pick', 'file_picker']) {
-        final d = Directory('${tmp.path}/$sub');
-        if (!await d.exists()) await d.create(recursive: true);
-        final n = File('${d.path}/.nomedia');
-        if (!await n.exists()) await n.create();
-      }
-    } catch (_) {}
+  // pasta PRIVADA do app (getApplicationSupportDirectory), com .nomedia -> a galeria NUNCA a
+  // escaneia. As cópias dos prints ficam aqui, não no cache (que causava duplicata na galeria).
+  Future<Directory> _mediaDir() async {
+    final base = await getApplicationSupportDirectory();
+    final d = Directory('${base.path}/vixya_media');
+    if (!await d.exists()) await d.create(recursive: true);
+    final n = File('${d.path}/.nomedia');
+    if (!await n.exists()) {
+      try { await n.create(); } catch (_) {}
+    }
+    return d;
   }
 
   Future<File> _toInternal(File src) async {
     try {
-      await _ensureNoMedia();
-      final dir = await getTemporaryDirectory();
-      final vixyaDir = Directory('${dir.path}/vixya_pick');
-      if (!await vixyaDir.exists()) await vixyaDir.create(recursive: true);
+      final dir = await _mediaDir();
       final name = src.path.split('/').last;
-      final dst = File('${vixyaDir.path}/${DateTime.now().millisecondsSinceEpoch}_$name');
+      final dst = File('${dir.path}/${DateTime.now().millisecondsSinceEpoch}_$name');
       if (await dst.exists()) await dst.delete();
       return await src.copy(dst.path);
     } catch (_) {
@@ -97,18 +95,28 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     }
   }
 
+  Future<File> _fromBytes(String name, List<int> bytes) async {
+    final dir = await _mediaDir();
+    final f = File('${dir.path}/${DateTime.now().millisecondsSinceEpoch}_$name');
+    await f.writeAsBytes(bytes);
+    return f;
+  }
+
+  // remove as cópias que o file_picker deixa no cache (fonte comum de duplicata na galeria)
+  Future<void> _clearPickerCache() async {
+    try { await FilePicker.platform.clearTemporaryFiles(); } catch (_) {}
+  }
+
   Future<void> _pickVideo() async {
     final r = await FilePicker.platform.pickFiles(type: FileType.video);
     final p = r?.files.single.path;
     if (p != null) {
       final f = await _toInternal(File(p));
+      await _clearPickerCache();
       if (mounted) setState(() => _video = f);
     } else if (r?.files.single.bytes != null) {
-      final dir = await getTemporaryDirectory();
-      final vixyaDir = Directory('${dir.path}/vixya_pick');
-      if (!await vixyaDir.exists()) await vixyaDir.create(recursive: true);
-      final f = File('${vixyaDir.path}/${DateTime.now().millisecondsSinceEpoch}_${r!.files.single.name}');
-      await f.writeAsBytes(r.files.single.bytes!);
+      final f = await _fromBytes(r!.files.single.name, r.files.single.bytes!);
+      await _clearPickerCache();
       if (mounted) setState(() => _video = f);
     }
   }
@@ -121,14 +129,10 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
         if (pf.path != null) {
           copied.add(await _toInternal(File(pf.path!)));
         } else if (pf.bytes != null) {
-          final dir = await getTemporaryDirectory();
-          final vixyaDir = Directory('${dir.path}/vixya_pick');
-          if (!await vixyaDir.exists()) await vixyaDir.create(recursive: true);
-          final f = File('${vixyaDir.path}/${DateTime.now().millisecondsSinceEpoch}_${pf.name}');
-          await f.writeAsBytes(pf.bytes!);
-          copied.add(f);
+          copied.add(await _fromBytes(pf.name, pf.bytes!));
         }
       }
+      await _clearPickerCache();
       if (mounted && copied.isNotEmpty) setState(() => _shots.addAll(copied));
     }
   }
@@ -264,7 +268,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
           label: _sending ? tr('sending') : tr('generate'),
         ),
         const SizedBox(height: 12),
-        Text('v0.1.18 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+        Text('v0.1.19 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
       ],
     );
   }
