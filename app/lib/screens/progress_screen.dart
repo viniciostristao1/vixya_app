@@ -51,18 +51,31 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
+  // Teto por fase do "rastejo": mesmo se a fase demora muito (ex.: IA de 3 min), a barra segue
+  // subindo devagar até aqui — nunca congela. RENDERING quase chega ao fim; as demais param cedo.
+  double get _slowCap {
+    switch (_state) {
+      case 'QUEUED': return 0.12;
+      case 'ANALYZING': return 0.30;
+      case 'PLANNING': return 0.80;
+      case 'RENDERING': return 0.985;
+      default: return _display;
+    }
+  }
+
   double get _targetProgress {
     final b = _band();
     final elapsed = (DateTime.now().millisecondsSinceEpoch - _phaseStartMs) / 1000.0;
-    final frac = 1 - math.exp(-elapsed / b.tau);
-    var t = b.lo + (b.hi - b.lo) * frac;
+    // (a) curva que desacelera perto do teto da fase; (b) rampa linear lenta (+0.75%/s) que
+    // ASSUME quando (a) satura -> garante movimento perpétuo até _slowCap. O maior dos dois.
+    final curve = b.lo + (b.hi - b.lo) * (1 - math.exp(-elapsed / b.tau));
+    final ramp = math.min(b.lo + elapsed * 0.0075, _slowCap);
+    var t = math.max(curve, ramp);
     if (_state == 'RENDERING') {
-      // ffmpeg = acelerador LEVE (teto 0.90): puxa a barra quando adianta, mas o TEMPO é o
-      // motor principal (0.90->0.97), então uma travada do ffmpeg não congela a barra.
-      final floorReal = 0.60 + (_progress.clamp(0, 100) / 100.0) * 0.30;
-      t = math.max(t, floorReal);
+      // ffmpeg = acelerador LEVE (teto +0.30): puxa quando adianta, mas o TEMPO é o motor.
+      t = math.max(t, 0.60 + (_progress.clamp(0, 100) / 100.0) * 0.30);
     }
-    return t.clamp(0.0, 0.99);
+    return t.clamp(0.0, 0.985);
   }
 
   @override
@@ -73,7 +86,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       if (!mounted || _state == 'WAITING_APPROVAL' || _state == 'COMPLETED') return;
       final t = _targetProgress;
       if (_display < t) {
-        final step = math.max((t - _display) * 0.15, 0.0016); // sempre avança um mínimo
+        final step = math.max((t - _display) * 0.15, 0.0016); // ease + mínimo garantido
         setState(() => _display = math.min(_display + step, t));
       }
     });
