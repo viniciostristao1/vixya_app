@@ -58,14 +58,20 @@ class Api {
     String style = 'dinamico',
     String? model,
     String language = 'pt',
+    String aspect = '9:16',
+    double speed = 1.0,
+    String? projectId,
   }) async {
     Future<http.Response> attempt() async {
       final req = http.MultipartRequest('POST', _u('/jobs'))
         ..headers.addAll(_headers)
         ..fields['objective'] = objective
         ..fields['style'] = style
-        ..fields['language'] = language;
+        ..fields['language'] = language
+        ..fields['aspect'] = aspect
+        ..fields['speed'] = speed.toString();
       if (model != null && model.isNotEmpty) req.fields['model'] = model;
+      if (projectId != null && projectId.isNotEmpty) req.fields['project_id'] = projectId;
       for (final f in files) {
         req.files.add(await http.MultipartFile.fromPath('files', f.path));
       }
@@ -102,6 +108,61 @@ class Api {
   static Future<void> approve(String id) async {
     final r = await http.post(_u('/jobs/$id/approve'), headers: _headers);
     if (r.statusCode >= 300) throw Exception('Falha (${r.statusCode})');
+  }
+
+  /// Cadastra/atualiza o perfil de um app no backend. Retorna o project_id.
+  static Future<String> upsertProject({
+    required String name,
+    String projectId = '',
+    String descricao = '',
+    String funcionalidades = '',
+    String publico = '',
+    String cta = '',
+    String cores = '',
+  }) async {
+    final req = http.MultipartRequest('POST', _u('/projects'))
+      ..headers.addAll(_headers)
+      ..fields['name'] = name;
+    if (projectId.isNotEmpty) req.fields['project_id'] = projectId;
+    void put(String k, String v) {
+      if (v.trim().isNotEmpty) req.fields[k] = v.trim();
+    }
+    put('descricao', descricao);
+    put('funcionalidades', funcionalidades);
+    put('publico', publico);
+    put('cta', cta);
+    put('cores', cores);
+    final resp = await http.Response.fromStream(await req.send().timeout(const Duration(seconds: 30)));
+    if (resp.statusCode >= 300) throw Exception('Falha ao salvar perfil (${resp.statusCode})');
+    return (jsonDecode(resp.body) as Map<String, dynamic>)['project_id'] as String;
+  }
+
+  /// Pede à IA sugestões de prompts a partir do perfil (por project_id OU campos avulsos).
+  static Future<List<String>> suggestPrompts({
+    String projectId = '',
+    String name = '',
+    String descricao = '',
+    String funcionalidades = '',
+    String publico = '',
+    String cta = '',
+    String language = 'pt',
+  }) async {
+    final req = http.MultipartRequest('POST', _u('/suggest_prompts'))
+      ..headers.addAll(_headers)
+      ..fields['language'] = language;
+    if (projectId.isNotEmpty) req.fields['project_id'] = projectId;
+    void put(String k, String v) {
+      if (v.trim().isNotEmpty) req.fields[k] = v.trim();
+    }
+    put('name', name);
+    put('descricao', descricao);
+    put('funcionalidades', funcionalidades);
+    put('publico', publico);
+    put('cta', cta);
+    final resp = await http.Response.fromStream(await req.send().timeout(const Duration(seconds: 90)));
+    if (resp.statusCode >= 300) throw Exception('Falha (${resp.statusCode})');
+    final d = jsonDecode(resp.body) as Map<String, dynamic>;
+    return ((d['prompts'] as List?) ?? []).map((e) => e.toString()).toList();
   }
 
   /// Baixa o preview ou o vídeo final para `dest`.

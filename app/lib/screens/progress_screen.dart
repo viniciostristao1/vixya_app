@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -22,46 +23,58 @@ class _ProgressScreenState extends State<ProgressScreen> {
   String _state = 'QUEUED';
   int _version = 1;
   int _progress = 0;
-  double _display = 0.03;
+  double _display = 0.02;
+  int _phaseStartMs = DateTime.now().millisecondsSinceEpoch;
   String? _error;
   bool _busy = false;
   VideoPlayerController? _player;
   int _loadedVersion = -1;
 
-  ({String label, double progress}) get _target {
-    if (_state == 'QUEUED') return (label: tr('queued'), progress: 0.10);
-    if (_state == 'ANALYZING') return (label: tr('buildingScript'), progress: 0.22);
-    if (_state == 'PLANNING') return (label: tr('buildingScript'), progress: 0.34);
-    if (_state == 'RENDERING') {
-      final p = _progress.clamp(0, 100) / 100.0;
-      final prog = 0.34 + p * 0.56;
-      final label = p < 0.85 ? tr('buildingVideo') : tr('finalTouches');
-      return (label: label, progress: prog.clamp(0.0, 0.96));
+  // Cada fase tem uma FAIXA [lo, hi] e um tempo típico (tau). A barra sobe por TEMPO com uma
+  // curva que desacelera perto do teto (1 - e^-t/tau) — nunca "trava" nem estoura. Em RENDERING
+  // o % real do ffmpeg entra como PISO: se ele adianta, a barra sobe junto (nunca volta atrás).
+  ({double lo, double hi, double tau, String label}) _band() {
+    switch (_state) {
+      case 'QUEUED':
+        return (lo: 0.02, hi: 0.10, tau: 3, label: tr('queued'));
+      case 'ANALYZING':
+        return (lo: 0.10, hi: 0.24, tau: 4, label: tr('analyzing'));
+      case 'PLANNING':
+        return (lo: 0.24, hi: 0.60, tau: 11, label: tr('buildingScript'));
+      case 'RENDERING':
+        final p = _progress.clamp(0, 100) / 100.0;
+        return (lo: 0.60, hi: 0.97, tau: 20, label: p < 0.9 ? tr('buildingVideo') : tr('finalTouches'));
+      case 'PREVIEW':
+        return (lo: 0.95, hi: 0.99, tau: 3, label: tr('finalTouches'));
+      default:
+        return (lo: _display, hi: _display, tau: 1, label: _state);
     }
-    if (_state == 'PREVIEW') return (label: tr('finalTouches'), progress: 0.97);
-    return (label: _state, progress: _display);
+  }
+
+  double get _targetProgress {
+    final b = _band();
+    final elapsed = (DateTime.now().millisecondsSinceEpoch - _phaseStartMs) / 1000.0;
+    final frac = 1 - math.exp(-elapsed / b.tau);
+    var t = b.lo + (b.hi - b.lo) * frac;
+    if (_state == 'RENDERING') {
+      // ffmpeg = acelerador LEVE (teto 0.90): puxa a barra quando adianta, mas o TEMPO é o
+      // motor principal (0.90->0.97), então uma travada do ffmpeg não congela a barra.
+      final floorReal = 0.60 + (_progress.clamp(0, 100) / 100.0) * 0.30;
+      t = math.max(t, floorReal);
+    }
+    return t.clamp(0.0, 0.99);
   }
 
   @override
   void initState() {
     super.initState();
     _startPolling();
-    _anim = Timer.periodic(const Duration(milliseconds: 90), (_) {
+    _anim = Timer.periodic(const Duration(milliseconds: 80), (_) {
       if (!mounted || _state == 'WAITING_APPROVAL' || _state == 'COMPLETED') return;
-      final t = _target.progress;
-      if (_display < t - 0.008) {
-        final step = (t - _display) * 0.20 + 0.007;
-        setState(() => _display = (_display + step).clamp(0.0, t));
-      } else if (_display < t) {
-        setState(() => _display = (_display + 0.005).clamp(0.0, t));
-      } else if (_state == 'QUEUED' && _display < 0.09) {
-        setState(() => _display = (_display + 0.0015).clamp(0.0, 0.09));
-      } else if (_state == 'ANALYZING' && _display < 0.20) {
-        setState(() => _display = (_display + 0.0015).clamp(0.0, 0.20));
-      } else if (_state == 'PLANNING' && _display < 0.32) {
-        setState(() => _display = (_display + 0.0012).clamp(0.0, 0.32));
-      } else if (_state == 'RENDERING' && _progress == 0 && _display < 0.36) {
-        setState(() => _display = (_display + 0.001).clamp(0.0, 0.36));
+      final t = _targetProgress;
+      if (_display < t) {
+        final step = math.max((t - _display) * 0.15, 0.0016); // sempre avança um mínimo
+        setState(() => _display = math.min(_display + step, t));
       }
     });
   }
@@ -84,8 +97,10 @@ class _ProgressScreenState extends State<ProgressScreen> {
     try {
       final s = await Api.status(widget.jobId);
       if (!mounted) return;
+      final newState = s['state'] as String? ?? _state;
+      if (newState != _state) _phaseStartMs = DateTime.now().millisecondsSinceEpoch; // reinicia o creep da fase
       setState(() {
-        _state = s['state'] as String? ?? _state;
+        _state = newState;
         _version = (s['version'] as int?) ?? _version;
         _progress = (s['progress'] as int?) ?? _progress;
         _error = s['error'] as String?;
@@ -124,6 +139,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
       await _player?.pause();
       await _player?.dispose();
       if (mounted) setState(() { _player = null; _loadedVersion = -1; _state = 'QUEUED'; _progress = 0; _display = 0.02; _error = null; });
+      _phaseStartMs = DateTime.now().millisecondsSinceEpoch;
       await Api.requestVersion(widget.jobId);
       _startPolling();
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${tr('buildingScript')} (v${_version + 1})')));
@@ -138,7 +154,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
     setState(() => _busy = true);
     try {
       await Api.approve(widget.jobId);
-      setState(() { _state = 'QUEUED'; _progress = 0; _display = 0.03; });
+      setState(() { _state = 'QUEUED'; _progress = 0; _display = 0.03; _phaseStartMs = DateTime.now().millisecondsSinceEpoch; });
       _startPolling();
     } catch (e) {
       _snack('Erro: $e');
@@ -218,13 +234,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
         Text('${tr('failed')}\n${_error ?? ''}', textAlign: TextAlign.center),
       ]);
     }
-    final u = _target;
+    final label = _band().label;
     final pct = (_display * 100).round().clamp(1, 99);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Expanded(child: Text(u.label, style: Theme.of(context).textTheme.titleMedium)),
+          Expanded(child: Text(label, style: Theme.of(context).textTheme.titleMedium)),
           const SizedBox(width: 12),
           Text('$pct%', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         ]),
