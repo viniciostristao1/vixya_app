@@ -18,9 +18,22 @@ class _PromptsScreenState extends State<PromptsScreen> {
   final _feat = TextEditingController();
   final _pub = TextEditingController();
   final _cta = TextEditingController();
-  final _colors = TextEditingController();
   final _ownPrompt = TextEditingController();
+  String _colorHex = ''; // '' = amarelo padrão; senão hex da paleta
   String _editingId = ''; // '' = novo app
+
+  // 10 cores prontas p/ os destaques (1ª = padrão amarelo). Viram a cor de seta/círculo/caixa.
+  static const _palette = <(String, String)>[
+    ('Amarelo', '#FACC15'), ('Azul', '#3B82F6'), ('Vermelho', '#EF4444'),
+    ('Verde claro', '#4ADE80'), ('Verde escuro', '#15803D'), ('Bege', '#D8C29D'),
+    ('Marrom', '#8B5E3C'), ('Preto', '#111827'), ('Laranja', '#F97316'), ('Roxo', '#8B5CF6'),
+  ];
+
+  static Color _hexColor(String h) {
+    h = h.replaceAll('#', '');
+    if (h.length != 6) return const Color(0xFFFACC15);
+    return Color(int.parse('FF$h', radix: 16));
+  }
   bool _savingProfile = false;
   bool _suggesting = false;
   List<String> _suggestions = [];
@@ -39,7 +52,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
   void dispose() {
     Store.profiles.removeListener(_onStore);
     Store.promptsByApp.removeListener(_onStore);
-    for (final c in [_name, _desc, _feat, _pub, _cta, _colors, _ownPrompt]) {
+    for (final c in [_name, _desc, _feat, _pub, _cta, _ownPrompt]) {
       c.dispose();
     }
     super.dispose();
@@ -52,7 +65,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
     _feat.text = p?.funcionalidades ?? '';
     _pub.text = p?.publico ?? '';
     _cta.text = p?.cta ?? '';
-    _colors.text = p?.cores ?? '';
+    _colorHex = p?.cores ?? '';
     _suggestions = [];
     if (mounted) setState(() {});
   }
@@ -64,7 +77,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
         funcionalidades: _feat.text.trim(),
         publico: _pub.text.trim(),
         cta: _cta.text.trim(),
-        cores: _colors.text.trim(),
+        cores: _colorHex,
       );
 
   Future<void> _saveProfile() async {
@@ -196,7 +209,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
         _field(_feat, tr('pFeatures'), lines: 2),
         _field(_pub, tr('pAudience')),
         _field(_cta, tr('pCta')),
-        _field(_colors, tr('pColors')),
+        _colorPicker(),
         const SizedBox(height: 8),
         Row(children: [
           Expanded(
@@ -251,6 +264,38 @@ class _PromptsScreenState extends State<PromptsScreen> {
         for (final s in saved) _promptCard(s, suggestion: false),
         const SizedBox(height: 24),
       ],
+    );
+  }
+
+  Widget _colorPicker() {
+    final sel = (_colorHex.isEmpty ? '#FACC15' : _colorHex).toUpperCase();
+    final selName = _palette.firstWhere((c) => c.$2.toUpperCase() == sel, orElse: () => ('Amarelo', '#FACC15')).$1;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text('${tr('pColors')} — $selName', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        const SizedBox(height: 6),
+        Wrap(spacing: 12, runSpacing: 12, children: [
+          for (final (_, hex) in _palette)
+            GestureDetector(
+              onTap: () => setState(() => _colorHex = hex),
+              child: Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: _hexColor(hex),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: hex.toUpperCase() == sel ? Theme.of(context).colorScheme.primary : Colors.black26,
+                    width: hex.toUpperCase() == sel ? 3 : 1,
+                  ),
+                ),
+                child: hex.toUpperCase() == sel
+                    ? Icon(Icons.check, size: 20, color: _hexColor(hex).computeLuminance() > 0.5 ? Colors.black : Colors.white)
+                    : null,
+              ),
+            ),
+        ]),
+      ]),
     );
   }
 
