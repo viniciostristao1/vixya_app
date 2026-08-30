@@ -45,6 +45,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     langCtrl.current.addListener(_onLang);
     Store.models.addListener(_onStore);
     Store.selectedProjectId.addListener(_onStore);
+    Store.promptsByApp.addListener(_onStore);
     Store.pendingObjective.addListener(_onPending);
   }
 
@@ -63,6 +64,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     langCtrl.current.removeListener(_onLang);
     Store.models.removeListener(_onStore);
     Store.selectedProjectId.removeListener(_onStore);
+    Store.promptsByApp.removeListener(_onStore);
     Store.pendingObjective.removeListener(_onPending);
     _objective.dispose();
     super.dispose();
@@ -207,10 +209,10 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
             ),
           ),
         ]),
-        if (Store.savedPrompts.value.isNotEmpty) ...[
+        if (Store.promptsFor(selId).isNotEmpty) ...[
           const SizedBox(height: 8),
           Wrap(spacing: 6, runSpacing: 6, children: [
-            for (final p in Store.savedPrompts.value.take(6))
+            for (final p in Store.promptsFor(selId).take(6))
               ActionChip(
                 label: Text(p.length > 34 ? '${p.substring(0, 34)}…' : p, style: const TextStyle(fontSize: 11)),
                 onPressed: () => setState(() => _objective.text = p),
@@ -262,7 +264,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
           label: _sending ? tr('sending') : tr('generate'),
         ),
         const SizedBox(height: 12),
-        Text('v0.1.16 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+        Text('v0.1.17 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
       ],
     );
   }

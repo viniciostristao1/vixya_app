@@ -19,6 +19,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
   final _pub = TextEditingController();
   final _cta = TextEditingController();
   final _colors = TextEditingController();
+  final _ownPrompt = TextEditingController();
   String _editingId = ''; // '' = novo app
   bool _savingProfile = false;
   bool _suggesting = false;
@@ -28,7 +29,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
   void initState() {
     super.initState();
     Store.profiles.addListener(_onStore);
-    Store.savedPrompts.addListener(_onStore);
+    Store.promptsByApp.addListener(_onStore);
     _loadInto(Store.selected);
   }
 
@@ -37,8 +38,8 @@ class _PromptsScreenState extends State<PromptsScreen> {
   @override
   void dispose() {
     Store.profiles.removeListener(_onStore);
-    Store.savedPrompts.removeListener(_onStore);
-    for (final c in [_name, _desc, _feat, _pub, _cta, _colors]) {
+    Store.promptsByApp.removeListener(_onStore);
+    for (final c in [_name, _desc, _feat, _pub, _cta, _colors, _ownPrompt]) {
       c.dispose();
     }
     super.dispose();
@@ -133,6 +134,14 @@ class _PromptsScreenState extends State<PromptsScreen> {
     _snack(tr('usedInExec'));
   }
 
+  void _addOwn() {
+    final t = _ownPrompt.text.trim();
+    if (t.isEmpty) return;
+    Store.addPrompt(_editingId, t);
+    _ownPrompt.clear();
+    _snack(tr('saved'));
+  }
+
   void _snack(String m) {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
   }
@@ -140,7 +149,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
   @override
   Widget build(BuildContext context) {
     final profiles = Store.profiles.value;
-    final saved = Store.savedPrompts.value;
+    final saved = Store.promptsFor(_editingId); // prompts DESTE app (ou gerais se nenhum)
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -220,8 +229,22 @@ class _PromptsScreenState extends State<PromptsScreen> {
         for (final s in _suggestions) _promptCard(s, suggestion: true),
         const Divider(height: 32),
 
-        // ---------------- Meus prompts ----------------
+        // ---------------- Meus prompts (deste app) ----------------
         Text(tr('myPrompts'), style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(
+            child: TextField(
+              controller: _ownPrompt,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _addOwn(),
+              decoration: InputDecoration(
+                hintText: tr('ownPromptHint'), isDense: true, border: const OutlineInputBorder(),
+              ),
+            ),
+          ),
+          IconButton(onPressed: _addOwn, icon: const Icon(Icons.add_circle), iconSize: 30),
+        ]),
         const SizedBox(height: 8),
         if (saved.isEmpty)
           Padding(padding: const EdgeInsets.all(8), child: Text(tr('savedEmpty'), style: const TextStyle(color: Colors.grey, fontSize: 12))),
@@ -251,12 +274,12 @@ class _PromptsScreenState extends State<PromptsScreen> {
               IconButton(
                 tooltip: tr('saved'),
                 icon: const Icon(Icons.bookmark_add_outlined, size: 20),
-                onPressed: () { Store.addPrompt(s); _snack(tr('saved')); },
+                onPressed: () { Store.addPrompt(_editingId, s); _snack(tr('saved')); },
               )
             else
               IconButton(
                 icon: const Icon(Icons.delete_outline, size: 20),
-                onPressed: () => Store.removePrompt(s),
+                onPressed: () => Store.removePrompt(_editingId, s),
               ),
           ]),
         ),

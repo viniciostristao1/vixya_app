@@ -57,7 +57,8 @@ class Store {
   static const _kSelected = 'vixya_selected_project';
 
   static final ValueNotifier<List<AppProfile>> profiles = ValueNotifier([]);
-  static final ValueNotifier<List<String>> savedPrompts = ValueNotifier([]);
+  // prompts salvos POR APP (chave = projectId; '' = geral/sem app). Cada app tem os seus.
+  static final ValueNotifier<Map<String, List<String>>> promptsByApp = ValueNotifier({});
   static final ValueNotifier<String> selectedProjectId = ValueNotifier(''); // '' = nenhum
   static final ValueNotifier<List<String>> models = ValueNotifier([]);
   // "usar" um prompt na aba Prompts joga o texto aqui; a aba Execução lê e preenche o campo.
@@ -73,10 +74,16 @@ class Store {
       profiles.value = [];
     }
     try {
-      savedPrompts.value =
-          (jsonDecode(p.getString(_kPrompts) ?? '[]') as List).map((e) => e.toString()).toList();
+      final raw = jsonDecode(p.getString(_kPrompts) ?? '{}');
+      if (raw is Map) {
+        promptsByApp.value = raw.map((k, v) =>
+            MapEntry(k.toString(), (v as List).map((e) => e.toString()).toList()));
+      } else if (raw is List) {
+        // migração do formato antigo (lista única) -> tudo no balde "geral" ('')
+        promptsByApp.value = {'': raw.map((e) => e.toString()).toList()};
+      }
     } catch (_) {
-      savedPrompts.value = [];
+      promptsByApp.value = {};
     }
     selectedProjectId.value = p.getString(_kSelected) ?? '';
   }
@@ -84,9 +91,12 @@ class Store {
   static Future<void> _persist() async {
     final p = await SharedPreferences.getInstance();
     await p.setString(_kProfiles, jsonEncode(profiles.value.map((e) => e.toJson()).toList()));
-    await p.setString(_kPrompts, jsonEncode(savedPrompts.value));
+    await p.setString(_kPrompts, jsonEncode(promptsByApp.value));
     await p.setString(_kSelected, selectedProjectId.value);
   }
+
+  static List<String> promptsFor(String projectId) =>
+      List<String>.from(promptsByApp.value[projectId] ?? const []);
 
   static AppProfile? get selected {
     final id = selectedProjectId.value;
@@ -122,6 +132,8 @@ class Store {
 
   static Future<void> removeProfile(String projectId) async {
     profiles.value = profiles.value.where((e) => e.projectId != projectId).toList();
+    final map = {...promptsByApp.value}..remove(projectId); // apaga os prompts do app junto
+    promptsByApp.value = map;
     if (selectedProjectId.value == projectId) selectedProjectId.value = '';
     await _persist();
   }
@@ -131,15 +143,21 @@ class Store {
     await _persist();
   }
 
-  static Future<void> addPrompt(String s) async {
+  static Future<void> addPrompt(String projectId, String s) async {
     s = s.trim();
-    if (s.isEmpty || savedPrompts.value.contains(s)) return;
-    savedPrompts.value = [s, ...savedPrompts.value];
+    if (s.isEmpty) return;
+    final map = {...promptsByApp.value};
+    final list = [...(map[projectId] ?? const <String>[])];
+    if (list.contains(s)) return;
+    map[projectId] = [s, ...list];
+    promptsByApp.value = map;
     await _persist();
   }
 
-  static Future<void> removePrompt(String s) async {
-    savedPrompts.value = savedPrompts.value.where((e) => e != s).toList();
+  static Future<void> removePrompt(String projectId, String s) async {
+    final map = {...promptsByApp.value};
+    map[projectId] = [...(map[projectId] ?? const <String>[])].where((e) => e != s).toList();
+    promptsByApp.value = map;
     await _persist();
   }
 
