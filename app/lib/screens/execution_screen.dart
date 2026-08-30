@@ -36,7 +36,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     'tutorial': 'Tutorial', 'marketing': 'Marketing', 'hook_viral': 'Hook Viral', 'oferta': 'Oferta',
   };
   static const _langs = {'pt': 'Português', 'es': 'Espanhol', 'en': 'Inglês'};
-  static const _speeds = {0.75: '0.75x', 1.0: '1x', 1.5: '1.5x'};
+  static final Map<double, String> _speeds = {0.75: '0.75x', 1.0: '1x', 1.5: '1.5x'};
 
   @override
   void initState() {
