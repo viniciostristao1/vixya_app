@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../api.dart';
@@ -95,44 +95,25 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     }
   }
 
-  Future<File> _fromBytes(String name, List<int> bytes) async {
-    final dir = await _mediaDir();
-    final f = File('${dir.path}/${DateTime.now().millisecondsSinceEpoch}_$name');
-    await f.writeAsBytes(bytes);
-    return f;
-  }
-
-  // remove as cópias que o file_picker deixa no cache (fonte comum de duplicata na galeria)
-  Future<void> _clearPickerCache() async {
-    try { await FilePicker.platform.clearTemporaryFiles(); } catch (_) {}
-  }
+  // image_picker: usa o seletor de fotos do sistema e copia p/ o cache INTERNO do app (nunca
+  // escaneado pela galeria) -> não duplica os prints. Depois copiamos p/ a pasta privada estável.
+  final _picker = ImagePicker();
 
   Future<void> _pickVideo() async {
-    final r = await FilePicker.platform.pickFiles(type: FileType.video);
-    final p = r?.files.single.path;
-    if (p != null) {
-      final f = await _toInternal(File(p));
-      await _clearPickerCache();
-      if (mounted) setState(() => _video = f);
-    } else if (r?.files.single.bytes != null) {
-      final f = await _fromBytes(r!.files.single.name, r.files.single.bytes!);
-      await _clearPickerCache();
+    final x = await _picker.pickVideo(source: ImageSource.gallery);
+    if (x != null) {
+      final f = await _toInternal(File(x.path));
       if (mounted) setState(() => _video = f);
     }
   }
 
   Future<void> _pickShots() async {
-    final r = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: true);
-    if (r != null) {
-      final List<File> copied = [];
-      for (final pf in r.files) {
-        if (pf.path != null) {
-          copied.add(await _toInternal(File(pf.path!)));
-        } else if (pf.bytes != null) {
-          copied.add(await _fromBytes(pf.name, pf.bytes!));
-        }
+    final xs = await _picker.pickMultiImage();
+    if (xs.isNotEmpty) {
+      final copied = <File>[];
+      for (final x in xs) {
+        copied.add(await _toInternal(File(x.path)));
       }
-      await _clearPickerCache();
       if (mounted && copied.isNotEmpty) setState(() => _shots.addAll(copied));
     }
   }
@@ -268,7 +249,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
           label: _sending ? tr('sending') : tr('generate'),
         ),
         const SizedBox(height: 12),
-        Text('v0.1.19 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+        Text('v0.1.20 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
       ],
     );
   }
