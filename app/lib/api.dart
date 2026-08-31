@@ -100,9 +100,25 @@ class Api {
     return jsonDecode(r.body) as Map<String, dynamic>;
   }
 
-  static Future<void> requestVersion(String id) async {
-    final r = await http.post(_u('/jobs/$id/version'), headers: _headers);
+  /// Nova versão do preview. Se `planJson` vier, troca o VideoPlan (ajuste manual de textos).
+  static Future<void> requestVersion(String id, {String? planJson}) async {
+    http.Response r;
+    if (planJson != null && planJson.isNotEmpty) {
+      final req = http.MultipartRequest('POST', _u('/jobs/$id/version'))
+        ..headers.addAll(_headers)
+        ..fields['plan'] = planJson;
+      r = await http.Response.fromStream(await req.send().timeout(const Duration(seconds: 30)));
+    } else {
+      r = await http.post(_u('/jobs/$id/version'), headers: _headers);
+    }
     if (r.statusCode >= 300) throw Exception('Falha (${r.statusCode})');
+  }
+
+  /// VideoPlan atual do job (Map) para o usuário ajustar. Null se ainda não houver plano.
+  static Future<Map<String, dynamic>?> getPlan(String id) async {
+    final r = await http.get(_u('/jobs/$id/plan'), headers: _headers).timeout(const Duration(seconds: 20));
+    if (r.statusCode != 200) throw Exception('Falha (${r.statusCode})');
+    return (jsonDecode(r.body) as Map<String, dynamic>)['plan'] as Map<String, dynamic>?;
   }
 
   static Future<void> approve(String id) async {

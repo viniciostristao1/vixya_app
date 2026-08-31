@@ -175,6 +175,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
         Stack(children: [
           TextField(
             controller: _objective,
+            textCapitalization: TextCapitalization.sentences,
             minLines: 2,
             maxLines: 4,
             onChanged: (_) => setState(() {}),
@@ -249,7 +250,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
           label: _sending ? tr('sending') : tr('generate'),
         ),
         const SizedBox(height: 12),
-        Text('v0.1.20 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+        Text('v0.1.21 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
       ],
     );
   }

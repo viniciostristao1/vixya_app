@@ -10,6 +10,7 @@ import 'package:video_player/video_player.dart';
 
 import '../api.dart';
 import '../i18n.dart';
+import 'adjust_screen.dart';
 
 class ProgressScreen extends StatefulWidget {
   final String jobId;
@@ -164,6 +165,32 @@ class _ProgressScreenState extends State<ProgressScreen> {
     }
   }
 
+  Future<void> _adjust() async {
+    setState(() => _busy = true);
+    try {
+      final plan = await Api.getPlan(widget.jobId);
+      if (plan == null) { _snack(tr('failed')); return; }
+      if (!mounted) return;
+      final changed = await Navigator.push<bool>(context,
+          MaterialPageRoute(builder: (_) => AdjustScreen(jobId: widget.jobId, plan: plan)));
+      if (changed == true) {                 // refez com meus textos -> repolla o novo preview
+        await _player?.pause();
+        await _player?.dispose();
+        if (mounted) {
+          setState(() {
+            _player = null; _loadedVersion = -1; _state = 'QUEUED'; _progress = 0;
+            _display = 0.02; _phaseStartMs = DateTime.now().millisecondsSinceEpoch;
+          });
+          _startPolling();
+        }
+      }
+    } catch (e) {
+      _snack('Erro: $e');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _approve() async {
     setState(() => _busy = true);
     try {
@@ -227,7 +254,14 @@ class _ProgressScreenState extends State<ProgressScreen> {
         child: Column(children: [
           Expanded(child: Center(child: _center(showPlayer, failed))),
           const SizedBox(height: 12),
-          if (waiting)
+          if (waiting) ...[
+            OutlinedButton.icon(
+              onPressed: _busy ? null : _adjust,
+              icon: const Icon(Icons.edit_note),
+              label: Text(tr('adjustText')),
+              style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
+            ),
+            const SizedBox(height: 8),
             Row(children: [
               Expanded(child: OutlinedButton.icon(
                 onPressed: _busy ? null : _otherVersion, icon: const Icon(Icons.refresh), label: Text(tr('otherVersion')))),
@@ -235,6 +269,7 @@ class _ProgressScreenState extends State<ProgressScreen> {
               Expanded(child: FilledButton.icon(
                 onPressed: _busy ? null : _approve, icon: const Icon(Icons.check), label: Text(tr('approve')))),
             ]),
+          ],
           if (done)
             Row(children: [
               Expanded(

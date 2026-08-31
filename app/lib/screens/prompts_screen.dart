@@ -249,6 +249,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
           Expanded(
             child: TextField(
               controller: _ownPrompt,
+              textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _addOwn(),
               decoration: InputDecoration(
@@ -303,6 +304,7 @@ class _PromptsScreenState extends State<PromptsScreen> {
         padding: const EdgeInsets.only(bottom: 10),
         child: TextField(
           controller: c,
+          textCapitalization: TextCapitalization.sentences,
           minLines: lines,
           maxLines: lines == 1 ? 1 : lines + 1,
           decoration: InputDecoration(labelText: label, border: const OutlineInputBorder(), isDense: true),
