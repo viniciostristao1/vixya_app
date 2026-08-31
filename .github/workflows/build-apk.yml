@@ -48,6 +48,9 @@ jobs:
           # salvar vídeo na galeria (plugin gal): Android <=29 exige WRITE_EXTERNAL_STORAGE
           grep -q 'WRITE_EXTERNAL_STORAGE' android/app/src/main/AndroidManifest.xml || \
             sed -i 's|<application|<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>\n    <application|' android/app/src/main/AndroidManifest.xml
+          # gravar a própria voz (plugin record): microfone
+          grep -q 'RECORD_AUDIO' android/app/src/main/AndroidManifest.xml || \
+            sed -i 's|<application|<uses-permission android:name="android.permission.RECORD_AUDIO"/>\n    <application|' android/app/src/main/AndroidManifest.xml
           sed -i 's/<application/<application android:usesCleartextTraffic="true"/' android/app/src/main/AndroidManifest.xml
           # nome do app na tela inicial = "Vixya" (nao "vixya_app")
           sed -i -E 's/android:label="[^"]*"/android:label="Vixya"/' android/app/src/main/AndroidManifest.xml

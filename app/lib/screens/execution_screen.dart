@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 
 import '../api.dart';
 import '../config.dart';
@@ -28,6 +30,12 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
   String _model = 'deepseek-v4-flash';
   String _aspect = '9:16';
   double _speed = 1.0;
+  String _voice = 'none'; // none | ai | mine
+  File? _voiceFile;
+  final _rec = AudioRecorder();
+  bool _recording = false;
+  int _recSecs = 0;
+  Timer? _recTimer;
   bool _sending = false;
 
   static const _styles = ['auto', 'dinamico', 'minimalista', 'tutorial', 'marketing', 'hook_viral', 'oferta'];
@@ -67,7 +75,35 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     Store.promptsByApp.removeListener(_onStore);
     Store.pendingObjective.removeListener(_onPending);
     _objective.dispose();
+    _recTimer?.cancel();
+    _rec.dispose();
     super.dispose();
+  }
+
+  Future<void> _startRec() async {
+    try {
+      if (!await _rec.hasPermission()) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('micDenied'))));
+        return;
+      }
+      final dir = await _mediaDir();
+      final path = '${dir.path}/voz_${DateTime.now().millisecondsSinceEpoch}.m4a';
+      await _rec.start(const RecordConfig(), path: path);
+      setState(() { _recording = true; _recSecs = 0; });
+      _recTimer = Timer.periodic(const Duration(seconds: 1), (_) { if (mounted) setState(() => _recSecs++); });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro: $e')));
+    }
+  }
+
+  Future<void> _stopRec() async {
+    _recTimer?.cancel();
+    try {
+      final path = await _rec.stop();
+      if (mounted) setState(() { _recording = false; if (path != null) _voiceFile = File(path); });
+    } catch (_) {
+      if (mounted) setState(() => _recording = false);
+    }
   }
 
   // pasta PRIVADA do app (getApplicationSupportDirectory), com .nomedia -> a galeria NUNCA a
@@ -122,14 +158,17 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
     if (_video == null) return;
     setState(() => _sending = true);
     try {
+      final files = [_video!, ..._shots];
+      if (_voice == 'mine' && _voiceFile != null) files.add(_voiceFile!);
       final id = await Api.createJob(
-        files: [_video!, ..._shots],
+        files: files,
         objective: _objective.text.trim(),
         style: _style,
         model: _model,
         language: _lang,
         aspect: _aspect,
         speed: _speed,
+        voice: _voice,
         projectId: Store.selectedProjectId.value,
       );
       if (mounted) {
@@ -232,6 +271,40 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
                 style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary)),
           ),
         const SizedBox(height: 12),
+        // VOZ: sem voz / voz da IA (TTS grátis no servidor) / minha voz (gravar)
+        _dd(tr('voice'), _voice, {
+          'none': tr('voiceNone'), 'ai': tr('voiceAI'), 'mine': tr('voiceMine'),
+        }.entries.map((e) => MapEntry(e.key, e.value)), (v) => setState(() => _voice = v)),
+        if (_voice == 'ai')
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(tr('voiceAIHint'), style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.primary)),
+          ),
+        if (_voice == 'mine')
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(children: [
+              Expanded(
+                child: _recording
+                    ? FilledButton.icon(
+                        onPressed: _stopRec,
+                        icon: const Icon(Icons.stop),
+                        label: Text(tr('stopRec', {'n': '$_recSecs'})),
+                        style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                      )
+                    : OutlinedButton.icon(
+                        onPressed: _startRec,
+                        icon: const Icon(Icons.mic),
+                        label: Text(_voiceFile == null ? tr('recordVoice') : tr('recordAgain')),
+                      ),
+              ),
+              if (_voiceFile != null && !_recording) ...[
+                const SizedBox(width: 8),
+                const Icon(Icons.check_circle, color: Colors.green, size: 22),
+              ],
+            ]),
+          ),
+        const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           initialValue: modelValue,
           isExpanded: true,
@@ -250,7 +323,7 @@ class _ExecutionScreenState extends State<ExecutionScreen> {
           label: _sending ? tr('sending') : tr('generate'),
         ),
         const SizedBox(height: 12),
-        Text('v0.1.21 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+        Text('v0.1.22 • ${Config.backendUrl}', style: const TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
       ],
     );
   }

@@ -60,6 +60,7 @@ class Api {
     String language = 'pt',
     String aspect = '9:16',
     double speed = 1.0,
+    String voice = 'none',
     String? projectId,
   }) async {
     Future<http.Response> attempt() async {
@@ -69,7 +70,8 @@ class Api {
         ..fields['style'] = style
         ..fields['language'] = language
         ..fields['aspect'] = aspect
-        ..fields['speed'] = speed.toString();
+        ..fields['speed'] = speed.toString()
+        ..fields['voice'] = voice;
       if (model != null && model.isNotEmpty) req.fields['model'] = model;
       if (projectId != null && projectId.isNotEmpty) req.fields['project_id'] = projectId;
       for (final f in files) {
