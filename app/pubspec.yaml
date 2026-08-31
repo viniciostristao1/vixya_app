@@ -16,7 +16,7 @@ dependencies:
   path_provider: ^2.1.0
   shared_preferences: ^2.3.0
   gal: ^2.3.0
-  record: ^5.1.2
+  record: ^7.1.1
 
 dev_dependencies:
   flutter_lints: ^4.0.0
